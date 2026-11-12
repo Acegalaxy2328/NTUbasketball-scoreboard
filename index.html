@@ -101,6 +101,13 @@
   input[type=checkbox]{width:22px;height:22px;accent-color:#ff4433}
   .note{color:#888;font-size:13px;line-height:1.6;margin-top:8px}
   .kbd{display:inline-block;border:1px solid #444;border-radius:5px;padding:0 6px;margin:0 2px;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#ccc}
+  .ptable{width:100%;border-collapse:collapse;margin:12px 0 4px;font-variant-numeric:tabular-nums}
+  .ptable th,.ptable td{padding:10px 6px;text-align:center;border-bottom:1px solid #262626;font-size:17px}
+  .ptable th{color:#8a8a8a;font-size:13px;font-weight:700}
+  .ptable td.tname{text-align:left;font-weight:700;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ptable td.tot{font-weight:900;font-size:22px;color:#fff}
+  .ptable .cur{background:#1f1f1f}
+  .ptable th.cur{color:#ff8a7a}
   .hrow{display:grid;grid-template-columns:78px 120px 1fr;gap:8px;padding:9px 0;border-bottom:1px solid #222;font-size:15px;align-items:baseline}
   .hrow .t{color:#7d7d7d;font-variant-numeric:tabular-nums;font-size:13px}
   .hrow .c{color:#ff8a7a;font-variant-numeric:tabular-nums}
@@ -232,9 +239,9 @@
 <!-- History -->
 <div class="overlay" id="ovHistory">
   <div class="modal">
-    <header>操作歷史紀錄 <button class="btn close" data-close>關閉</button></header>
+    <header>比賽紀錄 <button class="btn close" data-close>關閉</button></header>
     <div class="body" id="histList"></div>
-    <footer><button class="btn danger" id="histClear">清除紀錄</button><button class="btn" id="histUndo">↶ 復原上一步</button><button class="btn" id="histCopy">複製全部</button></footer>
+    <footer><button class="btn danger" id="histClear">清除紀錄</button><button class="btn" id="histUndo">↶ 復原上一步</button><button class="btn" id="histCopy">複製紀錄</button></footer>
   </div>
 </div>
 
@@ -276,6 +283,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const KEY = 'bb-scoreboard-v1';
+const HIST_MAX = 10;
 
 /* ---------------- state ---------------- */
 const DEF = {periodLen:600, otLen:300, digitStyle:'seg', labelFont:'oswald', clockColor:'#ff4433',
@@ -283,7 +291,7 @@ const DEF = {periodLen:600, otLen:300, digitStyle:'seg', labelFont:'oswald', clo
 const PERIODS = [['1','第1節'],['2','第2節'],['3','第3節'],['4','第4節'],
   ['OT1','延長賽1'],['OT2','延長賽2'],['OT3','延長賽3'],['OT4','延長賽4']];
 let S = {settings:{...DEF}, teams:{L:'B', R:'A'}, scores:{L:0, R:0}, period:'1',
-  game:{remain:600000, running:false}, shot:{remain:24000, running:false}, poss:'L', history:[]};
+  game:{remain:600000, running:false}, shot:{remain:24000, running:false}, poss:'L', byPeriod:{}, history:[]};
 
 try {
   const d = JSON.parse(localStorage.getItem(KEY) || 'null');
@@ -295,7 +303,9 @@ try {
     if (d.poss === 'L' || d.poss === 'R') S.poss = d.poss;
     if (d.game) S.game.remain = +d.game.remain || 0;
     if (d.shot) S.shot.remain = +d.shot.remain || 0;
-    if (Array.isArray(d.history)) S.history = d.history.slice(-600);
+    if (Array.isArray(d.history)) S.history = d.history.slice(-HIST_MAX);
+    if (d.byPeriod && typeof d.byPeriod === 'object') S.byPeriod = d.byPeriod;
+    else if (S.scores.L || S.scores.R) S.byPeriod = {[S.period]: {...S.scores}};
   }
 } catch (e) {}
 
@@ -308,6 +318,7 @@ let shotPausedByLink = false;
 const undoStack = [];
 function pushUndo(label, teamsOverride){
   undoStack.push({label, t: performance.now(), scores:{...S.scores}, period:S.period, poss:S.poss,
+    byPeriod: JSON.parse(JSON.stringify(S.byPeriod)),
     teams: teamsOverride || {...S.teams}, game:{...S.game}, shot:{...S.shot}});
   if (undoStack.length > 60) undoStack.shift();
 }
@@ -398,17 +409,30 @@ function render(){
 /* ---------------- history ---------------- */
 function log(text){
   S.history.push({t: Date.now(), p: periodLabel(S.period), c: clockText(), x: text});
-  if (S.history.length > 600) S.history.splice(0, S.history.length - 600);
+  if (S.history.length > HIST_MAX) S.history.splice(0, S.history.length - HIST_MAX);
   saveSoon();
   if ($('ovHistory').classList.contains('show')) renderHistory();
 }
 const pad2 = n => String(n).padStart(2, '0');
 const fmtTime = t => { const d = new Date(t); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function periodTable(){
+  const pidx = PERIODS.findIndex(p => p[0] === S.period);
+  // always show 第1-4節; show an overtime column once reached or scored in
+  const cols = PERIODS.filter((p, i) => i < 4 || i <= pidx || S.byPeriod[p[0]]);
+  const short = v => v.startsWith('OT') ? 'OT' + v.slice(2) : v;
+  const cell = (pv, side) => { const b = S.byPeriod[pv[0]]; return b ? b[side] : (PERIODS.indexOf(pv) <= pidx ? 0 : '–'); };
+  const head = cols.map(p => `<th class="${p[0] === S.period ? 'cur' : ''}">${short(p[0])}</th>`).join('');
+  const row = side => `<tr><td class="tname">${esc(S.teams[side] || (side === 'L' ? '左隊' : '右隊'))}</td>` +
+    cols.map(p => `<td class="${p[0] === S.period ? 'cur' : ''}">${cell(p, side)}</td>`).join('') +
+    `<td class="tot">${S.scores[side]}</td></tr>`;
+  return `<h3>每節得分</h3><table class="ptable"><tr><th></th>${head}<th>總分</th></tr>${row('L')}${row('R')}</table>`;
+}
 function renderHistory(){
   const L = $('histList');
-  if (!S.history.length) { L.innerHTML = '<div class="empty">目前沒有紀錄</div>'; return; }
-  L.innerHTML = S.history.slice().reverse().map(e =>
+  const tbl = periodTable();
+  if (!S.history.length) { L.innerHTML = tbl + '<h3>最近操作</h3><div class="empty">目前沒有紀錄</div>'; return; }
+  L.innerHTML = tbl + `<h3>最近 ${HIST_MAX} 筆操作</h3>` + S.history.slice().reverse().map(e =>
     `<div class="hrow"><span class="t">${fmtTime(e.t)}</span><span class="c">${esc(e.p)} ${esc(e.c)}</span><span>${esc(e.x)}</span></div>`).join('');
 }
 
@@ -584,6 +608,9 @@ function addScore(side, d){
   const name = S.teams[side] || (side === 'L' ? '左隊' : '右隊');
   const txt = `${name} ${d > 0 ? '+' : '−'}${Math.abs(d)}`;
   pushUndo(txt);
+  const real = n - S.scores[side];
+  const bp = S.byPeriod[S.period] || (S.byPeriod[S.period] = {L:0, R:0});
+  bp[side] += real;
   S.scores[side] = n;
   log(`${txt} → ${S.scores.L} : ${S.scores.R}`);
   render(); saveSoon();
@@ -605,6 +632,7 @@ function doUndo(){
   }
   shotPausedByLink = false;
   S.scores = {...u.scores}; S.period = u.period; S.poss = u.poss || S.poss;
+  if (u.byPeriod) S.byPeriod = u.byPeriod;
   S.teams = {...u.teams};
   for (const side of ['L','R']) { $('team' + side).value = S.teams[side]; fitTeam($('team' + side)); }
   log(`↶ 復原：${u.label}`);
@@ -756,15 +784,19 @@ $('rAll').addEventListener('click', () => {
   closeOv('ovReset');
   confirmBox('重置整場比賽？', '比分會歸零並回到第1節（按錯可以用「復原上一步」救回來）。', () => {
     pushUndo('整場比賽重置');
-    S.scores = {L:0, R:0}; S.period = '1'; resetClocks();
+    S.scores = {L:0, R:0}; S.byPeriod = {}; S.period = '1'; resetClocks();
     log('↺ 整場比賽重置'); render(); save(); toast('已重置整場比賽');
   });
 });
-$('histClear').addEventListener('click', () => confirmBox('清除操作紀錄？', '所有歷史紀錄都會被刪除。', () => {
+$('histClear').addEventListener('click', () => confirmBox('清除操作紀錄？', '最近的操作紀錄會被刪除（每節得分不受影響）。', () => {
   S.history = []; renderHistory(); save(); openOv('ovHistory');
 }));
 $('histCopy').addEventListener('click', async () => {
-  const txt = S.history.map(e => `${fmtTime(e.t)}\t${e.p} ${e.c}\t${e.x}`).join('\n');
+  const pidx = PERIODS.findIndex(p => p[0] === S.period);
+  const cols = PERIODS.filter((p, i) => i < 4 || i <= pidx || S.byPeriod[p[0]]);
+  const line = side => [S.teams[side] || side, ...cols.map(p => (S.byPeriod[p[0]] || {})[side] || 0), S.scores[side]].join('\t');
+  const txt = ['每節得分', ['隊伍', ...cols.map(p => p[1]), '總分'].join('\t'), line('L'), line('R'), '',
+    '最近操作', ...S.history.map(e => `${fmtTime(e.t)}\t${e.p} ${e.c}\t${e.x}`)].join('\n');
   try { await navigator.clipboard.writeText(txt); toast('已複製到剪貼簿'); }
   catch (e) { toast('這個環境不允許複製'); }
 });
