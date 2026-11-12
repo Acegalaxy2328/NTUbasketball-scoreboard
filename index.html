@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="籃球計時器">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#000000">
+<title>籃球計時器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Noto+Sans+TC:wght@500;700;900&family=Roboto+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;color:#fff;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;
+    font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif;-webkit-tap-highlight-color:transparent}
+  #stage{position:absolute;left:50%;top:50%;width:1400px;height:900px;transform:translate(-50%,-50%);
+    --labelFont:'Oswald','Noto Sans TC',sans-serif;--digitFont:'Oswald',sans-serif;--cw:.58em;--clock:#ff4433}
+  #stage > *{position:absolute}
+  button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+
+  .icon{width:96px;height:96px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .1s}
+  .icon svg{width:66px;height:66px;fill:#fff}
+  .icon:active{background:#262626}
+
+  .disp{display:flex;justify-content:center;align-items:center;cursor:pointer}
+  .disp svg{height:100%;width:auto;margin:0 calc(var(--gap,12px)/2);overflow:visible;display:block}
+  .disp .on{fill:currentColor}
+  .disp .off{fill:currentColor;opacity:var(--ghost,.1)}
+  .disp.text span{display:inline-block;text-align:center;font-family:var(--digitFont);font-weight:700;
+    font-size:calc(var(--h) * 1.18);line-height:var(--h);height:var(--h);font-variant-numeric:tabular-nums}
+  .disp.text span.d{width:var(--cw)}
+  .disp.text span.s{width:.32em}
+  .disp.text span.blank{opacity:0}
+
+  #gameDisp{left:120px;width:1160px;top:22px;height:330px;--h:330px;color:var(--clock);--ghost:.075;--gap:20px}
+  #pausedTag{left:0;width:1400px;top:358px;text-align:center;font-size:22px;color:#6b6b6b;letter-spacing:.4em;pointer-events:none}
+
+  .team,#periodSel{top:392px;height:112px;background:transparent;border:0;color:#fff;text-align:center;
+    font-family:var(--labelFont);font-weight:700;outline:none;padding:0;border-radius:0;
+    border-bottom:3px solid transparent;-webkit-appearance:none;appearance:none}
+  .team{width:400px;font-size:88px;-webkit-user-select:text;user-select:text}
+  .team:focus{border-bottom-color:#555}
+  #teamL{left:70px} #teamR{left:930px}
+  #periodSel{left:470px;width:460px;font-size:78px;text-align-last:center;cursor:pointer;font-family:var(--labelFont)}
+  #periodSel option{background:#111;color:#fff;font-size:20px}
+
+  .score{top:548px;width:470px;height:260px;--h:260px;color:#fff;--ghost:.11;--gap:16px;cursor:default}
+  #scoreL{left:112px} #scoreR{left:818px}
+
+  .pm{width:100px;height:120px;display:flex;align-items:center;justify-content:center;border-radius:18px}
+  .pm svg{width:60px;height:60px;stroke:#fff;stroke-width:5;stroke-linecap:square}
+  .pm:active{background:#262626}
+  #Lplus{left:8px;top:540px} #Lminus{left:8px;top:700px}
+  #Rplus{left:1292px;top:540px} #Rminus{left:1292px;top:700px}
+
+  .addRow{top:824px;width:470px;height:64px;display:flex;gap:14px}
+  #addL{left:112px} #addR{left:818px}
+  .addRow button{flex:1;border:2px solid #555;border-radius:16px;font-family:'Oswald',sans-serif;font-weight:500;font-size:36px;line-height:1;transition:background .08s,color .08s}
+  .addRow button:active{background:#fff;color:#000;border-color:#fff}
+  #shotDisp{left:590px;width:220px;top:548px;height:150px;--h:150px;color:#fff;--ghost:.11;--gap:10px}
+  #shotBtns{left:590px;top:720px;width:220px;height:86px;border:2px solid #fff;border-radius:24px;display:flex;overflow:hidden;box-sizing:border-box}
+  #shotBtns button{flex:1;font-family:'Oswald',sans-serif;font-weight:500;font-size:46px;transition:background .08s,color .08s}
+  #shotBtns button + button{border-left:2px solid #fff}
+  #shotBtns button.held{background:#fff;color:#000}
+
+  /* ---------- modals ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:10}
+  .overlay.show{display:flex}
+  .modal{background:#141414;border:1px solid #333;border-radius:18px;width:min(660px,94vw);max-height:90vh;display:flex;flex-direction:column;color:#eee;font-size:16px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+  .modal header{padding:16px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #2a2a2a;font-size:20px;font-weight:700}
+  .modal .body{padding:4px 20px 20px;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+  .modal footer{padding:12px 20px;border-top:1px solid #2a2a2a;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+  .modal h3{font-size:13px;color:#8a8a8a;letter-spacing:.12em;margin:20px 0 2px;font-weight:700}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #222;gap:12px;flex-wrap:wrap}
+  .row .ctl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .btn{background:#262626;border:1px solid #3a3a3a;border-radius:10px;padding:8px 14px;font-size:15px;color:#eee}
+  .btn:active{background:#383838}
+  .btn.primary{background:#d93a2b;border-color:#d93a2b;color:#fff}
+  .btn.danger{background:#3a1715;border-color:#6b2420;color:#ff9a8f}
+  .btn.close{padding:6px 12px}
+  .inp{background:#222;color:#fff;border:1px solid #3a3a3a;border-radius:8px;padding:7px 8px;font-size:16px;font-family:inherit;-webkit-user-select:auto;user-select:auto}
+  input[type=number].inp{width:62px;text-align:center}
+  input[type=range]{width:180px;accent-color:#ff4433}
+  input[type=checkbox]{width:22px;height:22px;accent-color:#ff4433}
+  .note{color:#888;font-size:13px;line-height:1.6;margin-top:8px}
+  .kbd{display:inline-block;border:1px solid #444;border-radius:5px;padding:0 6px;margin:0 2px;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#ccc}
+  .hrow{display:grid;grid-template-columns:78px 120px 1fr;gap:8px;padding:9px 0;border-bottom:1px solid #222;font-size:15px;align-items:baseline}
+  .hrow .t{color:#7d7d7d;font-variant-numeric:tabular-nums;font-size:13px}
+  .hrow .c{color:#ff8a7a;font-variant-numeric:tabular-nums}
+  .empty{color:#777;text-align:center;padding:40px 0}
+  .choice{display:flex;flex-direction:column;gap:10px;padding:16px 0}
+  .choice .btn{padding:14px;font-size:17px;text-align:left}
+  .choice .btn small{display:block;color:#999;font-size:13px;margin-top:2px}
+  #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#222;color:#fff;border:1px solid #444;padding:10px 18px;border-radius:999px;font-size:15px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+  #toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="safe" style="position:fixed;inset:0;box-sizing:border-box;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
+<div id="stage">
+  <button class="icon" id="btnSettings" style="left:18px;top:26px" aria-label="設定">
+    <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+  </button>
+  <button class="icon" id="btnHistory" style="left:18px;top:142px" aria-label="操作紀錄">
+    <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+  </button>
+  <button class="icon" id="btnUndo" style="left:18px;top:258px" aria-label="復原上一步">
+    <svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+  </button>
+  <button class="icon" id="btnSound" style="left:1286px;top:44px" aria-label="音量">
+    <svg viewBox="0 0 24 24"><path id="soundPath" d=""/></svg>
+  </button>
+  <button class="icon" id="btnReset" style="left:1286px;top:216px" aria-label="重置">
+    <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+  </button>
+
+  <div id="gameDisp" class="disp" role="button" aria-label="大表"></div>
+  <div id="pausedTag">暫停中</div>
+
+  <input id="teamL" class="team" maxlength="12" spellcheck="false" autocomplete="off">
+  <select id="periodSel" aria-label="節次"></select>
+  <input id="teamR" class="team" maxlength="12" spellcheck="false" autocomplete="off">
+
+  <button class="pm" id="Lplus" aria-label="左隊加分"><svg viewBox="0 0 60 60"><path d="M30 6v48M6 30h48"/></svg></button>
+  <button class="pm" id="Lminus" aria-label="左隊減分"><svg viewBox="0 0 60 60"><path d="M6 30h48"/></svg></button>
+  <div id="scoreL" class="disp score"></div>
+
+  <div id="addL" class="addRow"><button data-add="L,1">+1</button><button data-add="L,2">+2</button><button data-add="L,3">+3</button></div>
+  <div id="addR" class="addRow"><button data-add="R,1">+1</button><button data-add="R,2">+2</button><button data-add="R,3">+3</button></div>
+  <div id="shotDisp" class="disp" role="button" aria-label="小表"></div>
+  <div id="shotBtns">
+    <button id="b14">14</button><button id="b24">24</button>
+  </div>
+
+  <div id="scoreR" class="disp score"></div>
+  <button class="pm" id="Rplus" aria-label="右隊加分"><svg viewBox="0 0 60 60"><path d="M30 6v48M6 30h48"/></svg></button>
+  <button class="pm" id="Rminus" aria-label="右隊減分"><svg viewBox="0 0 60 60"><path d="M6 30h48"/></svg></button>
+</div>
+
+<!-- Settings -->
+<div class="overlay" id="ovSettings">
+  <div class="modal">
+    <header>設定 <button class="btn close" data-close>完成</button></header>
+    <div class="body">
+      <h3>比賽時間</h3>
+      <div class="row"><span>每節時間</span>
+        <span class="ctl"><input class="inp" type="number" id="sPerMin" min="0" max="99"> 分 <input class="inp" type="number" id="sPerSec" min="0" max="59"> 秒</span></div>
+      <div class="row"><span>延長賽時間</span>
+        <span class="ctl"><input class="inp" type="number" id="sOtMin" min="0" max="99"> 分 <input class="inp" type="number" id="sOtSec" min="0" max="59"> 秒</span></div>
+      <div class="row"><span>設定目前大表</span>
+        <span class="ctl"><input class="inp" type="number" id="sCurMin" min="0" max="99"> 分 <input class="inp" type="number" id="sCurSec" min="0" max="59"> 秒 <button class="btn" id="sCurApply">套用</button></span></div>
+      <div class="row"><span>微調大表</span>
+        <span class="ctl"><button class="btn" data-adj="-10000">−10秒</button><button class="btn" data-adj="-1000">−1秒</button><button class="btn" data-adj="1000">+1秒</button><button class="btn" data-adj="10000">+10秒</button></span></div>
+      <div class="row"><span>微調小表</span>
+        <span class="ctl"><button class="btn" data-sadj="-1000">−1秒</button><button class="btn" data-sadj="1000">+1秒</button></span></div>
+      <div class="row"><span>大表暫停／繼續時，小表一起暫停／繼續</span>
+        <span class="ctl"><input type="checkbox" id="sLink"></span></div>
+      <div class="row"><span>大表剩餘時間少於小表時，關閉小表</span>
+        <span class="ctl"><input type="checkbox" id="sShotOff"></span></div>
+
+      <h3>字體與顯示</h3>
+      <div class="row"><span>數字字體</span>
+        <span class="ctl"><select class="inp" id="sDigit">
+          <option value="seg">七段顯示器（預設）</option>
+          <option value="bold">粗體窄字</option>
+          <option value="mono">等寬字</option>
+        </select></span></div>
+      <div class="row"><span>隊名／節次字體</span>
+        <span class="ctl"><select class="inp" id="sLabel">
+          <option value="oswald">窄體（預設）</option>
+          <option value="hei">黑體</option>
+        </select></span></div>
+      <div class="row"><span>大表顏色</span>
+        <span class="ctl"><select class="inp" id="sColor">
+          <option value="#ff4433">紅</option>
+          <option value="#ff8a1f">橘</option>
+          <option value="#ffd319">黃</option>
+          <option value="#36e05a">綠</option>
+          <option value="#ffffff">白</option>
+        </select></span></div>
+      <div class="row"><span>最後一分鐘顯示到 0.1 秒</span>
+        <span class="ctl"><input type="checkbox" id="sTenths"></span></div>
+
+      <h3>音效</h3>
+      <div class="row"><span>音量</span>
+        <span class="ctl"><input type="range" id="sVol" min="0" max="1" step="0.05"></span></div>
+      <div class="row"><span>大表時間到</span>
+        <span class="ctl"><select class="inp" id="sGameSnd">
+          <option value="buzzer">經典蜂鳴器</option><option value="horn">汽笛</option><option value="beep">電子嗶聲</option><option value="none">無</option>
+        </select><button class="btn" id="tGame">試聽</button></span></div>
+      <div class="row"><span>小表時間到</span>
+        <span class="ctl"><select class="inp" id="sShotSnd">
+          <option value="buzzer">經典蜂鳴器</option><option value="horn">汽笛</option><option value="beep">電子嗶聲</option><option value="none">無</option>
+        </select><button class="btn" id="tShot">試聽</button></span></div>
+      <div class="row"><span>小表最後 5 秒每秒提示音</span>
+        <span class="ctl"><input type="checkbox" id="sBeep"></span></div>
+
+      <h3>其他</h3>
+      <div class="row"><span>全螢幕</span><span class="ctl"><button class="btn" id="sFull">切換全螢幕</button></span></div>
+      <div class="note">
+        鍵盤快捷鍵：<span class="kbd">空白鍵</span>大表 暫停/繼續　<span class="kbd">S</span>小表 暫停/繼續<br>
+        按住 <span class="kbd">2</span>＝按住 24，按住 <span class="kbd">1</span>＝按住 14（放開開始跑）<br>
+        左隊 <span class="kbd">Q</span><span class="kbd">W</span><span class="kbd">E</span> +1/+2/+3、<span class="kbd">A</span> −1　右隊 <span class="kbd">P</span><span class="kbd">O</span><span class="kbd">I</span> +1/+2/+3、<span class="kbd">L</span> −1<br>
+        <span class="kbd">U</span> 或 <span class="kbd">⌘/Ctrl+Z</span> 復原上一步<br>
+        點隊名可以直接修改。所有設定與比分會自動記在這台裝置上。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- History -->
+<div class="overlay" id="ovHistory">
+  <div class="modal">
+    <header>操作歷史紀錄 <button class="btn close" data-close>關閉</button></header>
+    <div class="body" id="histList"></div>
+    <footer><button class="btn danger" id="histClear">清除紀錄</button><button class="btn" id="histUndo">↶ 復原上一步</button><button class="btn" id="histCopy">複製全部</button></footer>
+  </div>
+</div>
+
+<!-- Reset -->
+<div class="overlay" id="ovReset">
+  <div class="modal" style="width:min(460px,92vw)">
+    <header>重置 <button class="btn close" data-close>取消</button></header>
+    <div class="body">
+      <div class="choice">
+        <button class="btn" id="rTime">重置計時<small>大表回到本節時間、小表回到 24，比分保留</small></button>
+        <button class="btn danger" id="rAll">重置整場比賽<small>比分歸零、回到第1節、計時重置（隊名保留）</small></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm clear -->
+<div class="overlay" id="ovConfirm">
+  <div class="modal" style="width:min(420px,92vw)">
+    <header id="cfTitle">確定？</header>
+    <div class="body"><p id="cfText" style="color:#bbb;line-height:1.6"></p></div>
+    <footer><button class="btn" data-close>取消</button><button class="btn primary" id="cfOk">確定</button></footer>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const KEY = 'bb-scoreboard-v1';
+
+/* ---------------- state ---------------- */
+const DEF = {periodLen:600, otLen:300, digitStyle:'seg', labelFont:'oswald', clockColor:'#ff4433',
+  tenths:true, volume:0.8, muted:false, gameSound:'buzzer', shotSound:'buzzer', shotBeep:false, linkShot:true, shotOff:true};
+const PERIODS = [['1','第1節'],['2','第2節'],['3','第3節'],['4','第4節'],
+  ['OT1','延長賽1'],['OT2','延長賽2'],['OT3','延長賽3'],['OT4','延長賽4']];
+let S = {settings:{...DEF}, teams:{L:'B', R:'A'}, scores:{L:0, R:0}, period:'1',
+  game:{remain:600000, running:false}, shot:{remain:24000, running:false}, history:[]};
+
+try {
+  const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+  if (d) {
+    S.settings = {...DEF, ...(d.settings||{})};
+    if (d.teams) S.teams = d.teams;
+    if (d.scores) S.scores = d.scores;
+    if (d.period) S.period = d.period;
+    if (d.game) S.game.remain = +d.game.remain || 0;
+    if (d.shot) S.shot.remain = +d.shot.remain || 0;
+    if (Array.isArray(d.history)) S.history = d.history.slice(-600);
+  }
+} catch (e) {}
+
+let saveT = null;
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function saveSoon(){ clearTimeout(saveT); saveT = setTimeout(save, 300); }
+
+let held = null;               // '24' | '14' while a shot button is held
+let shotPausedByLink = false;
+const undoStack = [];
+function pushUndo(label, teamsOverride){
+  undoStack.push({label, t: performance.now(), scores:{...S.scores}, period:S.period,
+    teams: teamsOverride || {...S.teams}, game:{...S.game}, shot:{...S.shot}});
+  if (undoStack.length > 60) undoStack.shift();
+}
+const shotOff = () => S.settings.shotOff && S.game.remain < S.shot.remain;
+
+const periodLabel = v => (PERIODS.find(p => p[0] === v) || PERIODS[0])[1];
+const periodFull = () => (S.period.startsWith('OT') ? S.settings.otLen : S.settings.periodLen) * 1000;
+
+/* ---------------- formatting ---------------- */
+function gameStr(){
+  const ms = Math.max(0, S.game.remain);
+  if (S.settings.tenths && ms < 60000) {
+    const s = Math.floor(ms / 1000), t = Math.floor((ms % 1000) / 100);
+    return (s < 10 ? ' ' + s : '' + s) + '.' + t;
+  }
+  const tot = Math.ceil(ms / 1000), m = Math.floor(tot / 60), s = tot % 60;
+  return (m < 10 ? ' ' + m : '' + m) + ':' + String(s).padStart(2, '0');
+}
+function clockText(){                 // for history
+  const ms = Math.max(0, S.game.remain);
+  if (ms < 60000) return (ms / 1000).toFixed(1);
+  const tot = Math.ceil(ms / 1000);
+  return String(Math.floor(tot / 60)).padStart(2,'0') + ':' + String(tot % 60).padStart(2,'0');
+}
+const shotStr = () => String(Math.ceil(Math.max(0, S.shot.remain) / 1000)).padStart(2, ' ');
+const scoreStr = n => String(n).padStart(3, ' ');
+
+/* ---------------- 7-segment renderer ---------------- */
+const W = 100, H = 180, T = 18, h = T / 2, G = 2.5;
+const xl = h, xr = W - h, yt = h, ym = H / 2, yb = H - h;
+const hs = (y, a, b) => [[a+G,y],[a+G+h,y-h],[b-G-h,y-h],[b-G,y],[b-G-h,y+h],[a+G+h,y+h]];
+const vs = (x, a, b) => [[x,a+G],[x+h,a+G+h],[x+h,b-G-h],[x,b-G],[x-h,b-G-h],[x-h,a+G+h]];
+const SEG = {a:hs(yt,xl,xr), b:vs(xr,yt,ym), c:vs(xr,ym,yb), d:hs(yb,xl,xr), e:vs(xl,ym,yb), f:vs(xl,yt,ym), g:hs(ym,xl,xr)};
+for (const k in SEG) SEG[k] = SEG[k].map(p => p.join(',')).join(' ');
+const MAP = {'0':'abcdef','1':'bc','2':'abdeg','3':'abcdg','4':'bcfg','5':'acdfg','6':'acdefg','7':'abc','8':'abcdefg','9':'abcdfg','-':'g',' ':''};
+
+function segGlyph(ch){
+  if (ch === ':') return `<svg viewBox="0 0 44 ${H}"><circle class="on" cx="22" cy="62" r="11"/><circle class="on" cx="22" cy="118" r="11"/></svg>`;
+  if (ch === '.') return `<svg viewBox="0 0 44 ${H}"><circle class="on" cx="22" cy="${yb-2}" r="11"/></svg>`;
+  const on = MAP[ch] || '';
+  let s = `<svg viewBox="0 0 ${W} ${H}">`;
+  for (const k of 'abcdefg') s += `<polygon class="${on.includes(k) ? 'on' : 'off'}" points="${SEG[k]}"/>`;
+  return s + '</svg>';
+}
+function textGlyph(ch){
+  if (ch === ':' || ch === '.') return `<span class="s">${ch}</span>`;
+  if (ch === ' ') return `<span class="d blank">0</span>`;
+  return `<span class="d">${ch}</span>`;
+}
+function setDisp(el, str){
+  const style = S.settings.digitStyle;
+  const k = style + '|' + str;
+  if (el._k === k) return;
+  el._k = k;
+  el.classList.toggle('text', style !== 'seg');
+  el.innerHTML = [...str].map(style === 'seg' ? segGlyph : textGlyph).join('');
+}
+
+/* ---------------- render ---------------- */
+const ICON_ON = 'M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z';
+const ICON_OFF = 'M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.796 8.796 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z';
+
+function applyLook(){
+  const st = $('stage').style, s = S.settings;
+  st.setProperty('--clock', s.clockColor);
+  st.setProperty('--labelFont', s.labelFont === 'hei'
+    ? "'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif"
+    : "'Oswald','Noto Sans TC',sans-serif");
+  st.setProperty('--digitFont', s.digitStyle === 'mono' ? "'Roboto Mono',ui-monospace,Menlo,monospace" : "'Oswald',sans-serif");
+  st.setProperty('--cw', s.digitStyle === 'mono' ? '.62em' : '.56em');
+  $('soundPath').setAttribute('d', s.muted ? ICON_OFF : ICON_ON);
+  for (const id of ['gameDisp','shotDisp','scoreL','scoreR']) $(id)._k = null;
+}
+function render(){
+  setDisp($('gameDisp'), gameStr());
+  setDisp($('shotDisp'), shotOff() ? '  ' : shotStr());
+  setDisp($('scoreL'), scoreStr(S.scores.L));
+  setDisp($('scoreR'), scoreStr(S.scores.R));
+  $('pausedTag').style.visibility = (!S.game.running && S.game.remain > 0) ? 'visible' : 'hidden';
+  $('pausedTag').textContent = '暫停中';
+  if (S.game.remain <= 0) { $('pausedTag').style.visibility = 'visible'; $('pausedTag').textContent = '時間到'; }
+  $('b24').classList.toggle('held', held === '24');
+  $('b14').classList.toggle('held', held === '14');
+}
+
+/* ---------------- history ---------------- */
+function log(text){
+  S.history.push({t: Date.now(), p: periodLabel(S.period), c: clockText(), x: text});
+  if (S.history.length > 600) S.history.splice(0, S.history.length - 600);
+  saveSoon();
+  if ($('ovHistory').classList.contains('show')) renderHistory();
+}
+const pad2 = n => String(n).padStart(2, '0');
+const fmtTime = t => { const d = new Date(t); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function renderHistory(){
+  const L = $('histList');
+  if (!S.history.length) { L.innerHTML = '<div class="empty">目前沒有紀錄</div>'; return; }
+  L.innerHTML = S.history.slice().reverse().map(e =>
+    `<div class="hrow"><span class="t">${fmtTime(e.t)}</span><span class="c">${esc(e.p)} ${esc(e.c)}</span><span>${esc(e.x)}</span></div>`).join('');
+}
+
+/* ---------------- audio ---------------- */
+let ac = null;
+function ensureAC(){
+  try {
+    if (!ac) {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      const b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource();   // iOS unlock
+      src.buffer = b; src.connect(ac.destination); src.start(0);
+    }
+    if (ac.state === 'suspended') ac.resume();
+  } catch (e) {}
+}
+function play(kind, role, force){
+  if (kind === 'none' || (!force && S.settings.muted)) return;
+  ensureAC(); if (!ac) return;
+  const v = S.settings.volume, t0 = ac.currentTime + 0.01;
+  const out = ac.createGain(); out.gain.value = 0;
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
+  lp.connect(out); out.connect(ac.destination);
+  const oscs = [];
+  const osc = (type, f) => { const o = ac.createOscillator(); o.type = type; o.frequency.value = f; o.connect(lp); oscs.push(o); return o; };
+  let end;
+  if (kind === 'tick') {
+    osc('sine', 1250); lp.frequency.value = 8000;
+    out.gain.setValueAtTime(0, t0); out.gain.linearRampToValueAtTime(v*.6, t0+.005);
+    out.gain.exponentialRampToValueAtTime(.0001, t0+.12); end = t0 + .14;
+  } else if (kind === 'beep') {
+    osc('square', role === 'game' ? 880 : 1100); lp.frequency.value = 3500;
+    const n = role === 'game' ? 4 : 3;
+    out.gain.setValueAtTime(0, t0);
+    for (let i = 0; i < n; i++) {
+      const a = t0 + i * .34;
+      out.gain.setValueAtTime(0, a); out.gain.linearRampToValueAtTime(v*.35, a+.01);
+      out.gain.setValueAtTime(v*.35, a+.22); out.gain.linearRampToValueAtTime(0, a+.24);
+    }
+    end = t0 + n * .34;
+  } else {
+    const dur = role === 'game' ? 2.0 : 1.3;
+    const base = role === 'game' ? 170 : 240;
+    if (kind === 'horn') {
+      const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 5.5; lg.gain.value = 4; lfo.connect(lg);
+      for (const m of [1.33, 1.68, 2.0]) { const o = osc('sawtooth', base * m); lg.connect(o.frequency); }
+      oscs.push(lfo); lp.frequency.value = 1800;
+    } else {
+      osc('sawtooth', base); osc('sawtooth', base * 1.012); osc('square', base * 2);
+    }
+    const peak = v * .42;
+    out.gain.setValueAtTime(0, t0); out.gain.linearRampToValueAtTime(peak, t0 + .015);
+    out.gain.setValueAtTime(peak, t0 + dur - .06); out.gain.linearRampToValueAtTime(0, t0 + dur);
+    end = t0 + dur;
+  }
+  for (const o of oscs) { o.start(t0); o.stop(end + .05); }
+}
+
+/* ---------------- clock logic ---------------- */
+let last = performance.now(), lastSave = 0;
+function tick(){
+  const now = performance.now(), dt = now - last; last = now;
+  let changed = false;
+  if (S.game.running) {
+    S.game.remain -= dt; changed = true;
+    if (S.game.remain <= 0) {
+      S.game.remain = 0; S.game.running = false;
+      if (S.shot.running) { S.shot.running = false; }
+      shotPausedByLink = false;
+      play(S.settings.gameSound, 'game');
+      log('⏰ 大表時間到');
+    }
+  }
+  if (S.shot.running && shotOff()) {
+    S.shot.running = false; changed = true;
+    log('小表關閉（大表剩餘時間少於小表）');
+  }
+  if (S.shot.running) {
+    const before = Math.ceil(S.shot.remain / 1000);
+    S.shot.remain -= dt; changed = true;
+    const after = Math.ceil(Math.max(0, S.shot.remain) / 1000);
+    if (S.shot.remain <= 0) {
+      S.shot.remain = 0; S.shot.running = false;
+      play(S.settings.shotSound, 'shot');
+      log('⏰ 小表時間到（進攻時間到）');
+    } else if (S.settings.shotBeep && after < before && after <= 5) {
+      play('tick', 'shot');
+    }
+  }
+  if (changed) {
+    render();
+    if (now - lastSave > 2000) { lastSave = now; save(); }
+  }
+}
+setInterval(tick, 40);
+
+function toggleGame(){
+  if (S.game.remain <= 0) return;
+  pushUndo(S.game.running ? '大表暫停' : '大表開始');
+  if (S.game.running) {
+    S.game.running = false;
+    let extra = '';
+    if (S.settings.linkShot && S.shot.running) { S.shot.running = false; shotPausedByLink = true; extra = '（小表同步暫停）'; }
+    log('⏸ 大表暫停' + extra);
+  } else {
+    S.game.running = true;
+    let extra = '';
+    if (S.settings.linkShot && shotPausedByLink && !held && S.shot.remain > 0 && !shotOff()) { S.shot.running = true; extra = '（小表同步繼續）'; }
+    shotPausedByLink = false;
+    log('▶ 大表開始' + extra);
+  }
+  render(); save();
+}
+function toggleShot(){
+  if (held || S.shot.remain <= 0) return;
+  if (shotOff()) { toast('小表已關閉（大表時間少於小表）'); return; }
+  pushUndo(S.shot.running ? '小表暫停' : '小表開始');
+  shotPausedByLink = false;
+  S.shot.running = !S.shot.running;
+  log(S.shot.running ? '▶ 小表開始' : '⏸ 小表暫停');
+  render(); save();
+}
+function holdStart(v){
+  if (held) return;
+  pushUndo(`小表重置為 ${v}`);
+  held = v; shotPausedByLink = false;
+  S.shot.running = false; S.shot.remain = (+v) * 1000;
+  log(`↺ 小表重置為 ${v}`);
+  render();
+}
+function holdEnd(){
+  if (!held) return;
+  held = null;
+  if (S.shot.remain > 0 && !shotOff()) { S.shot.running = true; log('▶ 小表開始'); }
+  else if (shotOff()) log('小表關閉（大表剩餘時間少於小表）');
+  render(); save();
+}
+function addScore(side, d){
+  const n = Math.max(0, Math.min(999, S.scores[side] + d));
+  if (n === S.scores[side]) return;
+  const name = S.teams[side] || (side === 'L' ? '左隊' : '右隊');
+  const txt = `${name} ${d > 0 ? '+' : '−'}${Math.abs(d)}`;
+  pushUndo(txt);
+  S.scores[side] = n;
+  log(`${txt} → ${S.scores.L} : ${S.scores.R}`);
+  render(); saveSoon();
+}
+function resetClocks(){
+  S.game.running = false; S.shot.running = false; held = null; shotPausedByLink = false;
+  S.game.remain = periodFull(); S.shot.remain = 24000;
+}
+
+function doUndo(){
+  if (held) return;
+  const u = undoStack.pop();
+  if (!u) { toast('沒有可以復原的操作'); return; }
+  const el = performance.now() - u.t;
+  for (const c of ['game','shot']) {
+    let r = u[c].remain - (u[c].running ? el : 0);
+    S[c].running = r > 0 && u[c].running;
+    S[c].remain = Math.max(0, r);
+  }
+  shotPausedByLink = false;
+  S.scores = {...u.scores}; S.period = u.period; sel.value = u.period;
+  S.teams = {...u.teams};
+  for (const side of ['L','R']) { $('team' + side).value = S.teams[side]; fitTeam($('team' + side)); }
+  log(`↶ 復原：${u.label}`);
+  render(); save(); toast(`已復原：${u.label}`);
+}
+
+/* ---------------- input wiring ---------------- */
+const down = (el, fn) => el.addEventListener('pointerdown', e => { e.preventDefault(); blurActive(); fn(e); });
+function blurActive(){ const a = document.activeElement; if (a && (a.tagName === 'INPUT' || a.tagName === 'SELECT') && a.closest('#stage')) a.blur(); }
+
+document.addEventListener('pointerdown', () => { ensureAC(); requestWake(); }, true);
+
+down($('gameDisp'), toggleGame);
+down($('shotDisp'), toggleShot);
+for (const v of ['14','24']) {
+  const b = $('b' + v);
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault(); blurActive();
+    try { b.setPointerCapture(e.pointerId); } catch (x) {}
+    holdStart(v);
+  });
+  for (const ev of ['pointerup','pointercancel','lostpointercapture']) b.addEventListener(ev, holdEnd);
+  b.addEventListener('contextmenu', e => e.preventDefault());
+}
+down($('Lplus'), () => addScore('L', 1));
+down($('Lminus'), () => addScore('L', -1));
+down($('Rplus'), () => addScore('R', 1));
+down($('Rminus'), () => addScore('R', -1));
+document.querySelectorAll('[data-add]').forEach(b => {
+  const [side, n] = b.dataset.add.split(',');
+  down(b, () => addScore(side, +n));
+});
+$('btnUndo').addEventListener('click', doUndo);
+$('histUndo').addEventListener('click', doUndo);
+$('stage').addEventListener('pointerdown', e => { if (e.target === $('stage')) blurActive(); });
+document.addEventListener('contextmenu', e => { if (!e.target.closest('input')) e.preventDefault(); });
+document.addEventListener('touchmove', e => { if (!e.target.closest('.body')) e.preventDefault(); }, {passive:false});
+
+// team names
+function fitTeam(inp){
+  let u = 0; for (const ch of (inp.value || ' ')) u += /[⺀-￿]/.test(ch) ? 1 : 0.56;
+  inp.style.fontSize = Math.max(30, Math.min(88, 390 / Math.max(u, 1))) + 'px';
+}
+for (const side of ['L','R']) {
+  const inp = $('team' + side);
+  inp.value = S.teams[side]; fitTeam(inp);
+  let before = inp.value;
+  inp.addEventListener('focus', () => { before = inp.value; });
+  inp.addEventListener('input', () => { fitTeam(inp); S.teams[side] = inp.value.trim(); saveSoon(); });
+  inp.addEventListener('change', () => {
+    const now = inp.value.trim();
+    if (now !== before) {
+      pushUndo(`隊名改為「${now || '—'}」`, {...S.teams, [side]: before});
+      log(`✎ 隊名「${before || '—'}」改為「${now || '—'}」`);
+    }
+    before = now;
+  });
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); e.stopPropagation(); });
+}
+
+// period
+const sel = $('periodSel');
+sel.innerHTML = PERIODS.map(p => `<option value="${p[0]}">${p[1]}</option>`).join('');
+sel.value = S.period;
+sel.addEventListener('change', () => {
+  pushUndo(`切換至 ${periodLabel(sel.value)}`);
+  S.period = sel.value; resetClocks();
+  log(`切換至 ${periodLabel(S.period)}，計時重置`);
+  render(); save(); sel.blur();
+});
+
+// top buttons
+$('btnSound').addEventListener('click', () => {
+  S.settings.muted = !S.settings.muted; applyLook(); render(); saveSoon();
+  toast(S.settings.muted ? '已靜音' : '已開啟聲音');
+});
+$('btnReset').addEventListener('click', () => openOv('ovReset'));
+$('btnHistory').addEventListener('click', () => { renderHistory(); openOv('ovHistory'); });
+$('btnSettings').addEventListener('click', () => { fillSettings(); openOv('ovSettings'); });
+
+/* ---------------- overlays ---------------- */
+function openOv(id){ $(id).classList.add('show'); }
+function closeOv(id){ $(id).classList.remove('show'); }
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('[data-close]')) closeOv(ov.id); });
+});
+let cfAction = null;
+function confirmBox(title, text, fn){ $('cfTitle').textContent = title; $('cfText').textContent = text; cfAction = fn; openOv('ovConfirm'); }
+$('cfOk').addEventListener('click', () => { closeOv('ovConfirm'); if (cfAction) cfAction(); cfAction = null; });
+
+$('rTime').addEventListener('click', () => {
+  pushUndo('計時重置'); resetClocks(); log('↺ 計時重置'); render(); save(); closeOv('ovReset'); toast('計時已重置');
+});
+$('rAll').addEventListener('click', () => {
+  closeOv('ovReset');
+  confirmBox('重置整場比賽？', '比分會歸零並回到第1節（按錯可以用「復原上一步」救回來）。', () => {
+    pushUndo('整場比賽重置');
+    S.scores = {L:0, R:0}; S.period = '1'; sel.value = '1'; resetClocks();
+    log('↺ 整場比賽重置'); render(); save(); toast('已重置整場比賽');
+  });
+});
+$('histClear').addEventListener('click', () => confirmBox('清除操作紀錄？', '所有歷史紀錄都會被刪除。', () => {
+  S.history = []; renderHistory(); save(); openOv('ovHistory');
+}));
+$('histCopy').addEventListener('click', async () => {
+  const txt = S.history.map(e => `${fmtTime(e.t)}\t${e.p} ${e.c}\t${e.x}`).join('\n');
+  try { await navigator.clipboard.writeText(txt); toast('已複製到剪貼簿'); }
+  catch (e) { toast('這個環境不允許複製'); }
+});
+
+/* ---------------- settings ---------------- */
+function fillSettings(){
+  const s = S.settings;
+  $('sPerMin').value = Math.floor(s.periodLen / 60); $('sPerSec').value = s.periodLen % 60;
+  $('sOtMin').value = Math.floor(s.otLen / 60);      $('sOtSec').value = s.otLen % 60;
+  const cur = Math.ceil(Math.max(0, S.game.remain) / 1000);
+  $('sCurMin').value = Math.floor(cur / 60); $('sCurSec').value = cur % 60;
+  $('sLink').checked = s.linkShot; $('sShotOff').checked = s.shotOff; $('sDigit').value = s.digitStyle; $('sLabel').value = s.labelFont;
+  $('sColor').value = s.clockColor; $('sTenths').checked = s.tenths; $('sVol').value = s.volume;
+  $('sGameSnd').value = s.gameSound; $('sShotSnd').value = s.shotSound; $('sBeep').checked = s.shotBeep;
+}
+const num = (id, max) => Math.max(0, Math.min(max, parseInt($(id).value, 10) || 0));
+function onLen(kind){
+  const s = S.settings, wasFull = !S.game.running && S.game.remain === periodFull();
+  if (kind === 'per') s.periodLen = num('sPerMin', 99) * 60 + num('sPerSec', 59);
+  else s.otLen = num('sOtMin', 99) * 60 + num('sOtSec', 59);
+  if (wasFull) S.game.remain = periodFull();     // not started yet → follow new length
+  render(); saveSoon();
+}
+['sPerMin','sPerSec'].forEach(id => $(id).addEventListener('change', () => onLen('per')));
+['sOtMin','sOtSec'].forEach(id => $(id).addEventListener('change', () => onLen('ot')));
+$('sCurApply').addEventListener('click', () => {
+  pushUndo('設定大表時間');
+  S.game.remain = (num('sCurMin', 99) * 60 + num('sCurSec', 59)) * 1000;
+  log(`✎ 大表設定為 ${clockText()}`); render(); save(); toast('大表時間已更新');
+});
+document.querySelectorAll('[data-adj]').forEach(b => b.addEventListener('click', () => {
+  const d = +b.dataset.adj; pushUndo(`大表 ${d > 0 ? '+' : '−'}${Math.abs(d/1000)} 秒`); S.game.remain = Math.max(0, S.game.remain + d);
+  log(`✎ 大表 ${d > 0 ? '+' : '−'}${Math.abs(d/1000)} 秒`); render(); saveSoon(); fillSettings();
+}));
+document.querySelectorAll('[data-sadj]').forEach(b => b.addEventListener('click', () => {
+  const d = +b.dataset.sadj; pushUndo(`小表 ${d > 0 ? '+' : '−'}${Math.abs(d/1000)} 秒`); S.shot.remain = Math.max(0, Math.min(99000, S.shot.remain + d));
+  log(`✎ 小表 ${d > 0 ? '+' : '−'}${Math.abs(d/1000)} 秒`); render(); saveSoon();
+}));
+const bindSet = (id, key, conv, ev = 'change') => $(id).addEventListener(ev, () => {
+  const el = $(id); S.settings[key] = conv(el.type === 'checkbox' ? el.checked : el.value);
+  applyLook(); render(); saveSoon();
+});
+bindSet('sLink', 'linkShot', Boolean);
+bindSet('sShotOff', 'shotOff', Boolean);
+bindSet('sDigit', 'digitStyle', String);
+bindSet('sLabel', 'labelFont', String);
+bindSet('sColor', 'clockColor', String);
+bindSet('sTenths', 'tenths', Boolean);
+bindSet('sVol', 'volume', Number, 'input');
+bindSet('sGameSnd', 'gameSound', String);
+bindSet('sShotSnd', 'shotSound', String);
+bindSet('sBeep', 'shotBeep', Boolean);
+$('tGame').addEventListener('click', () => play($('sGameSnd').value, 'game', true));
+$('tShot').addEventListener('click', () => play($('sShotSnd').value, 'shot', true));
+$('sFull').addEventListener('click', () => {
+  const d = document, el = d.documentElement;
+  try {
+    if (d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
+    else { const r = (el.requestFullscreen || el.webkitRequestFullscreen).call(el); if (r && r.catch) r.catch(() => toast('這個裝置不支援全螢幕')); }
+  } catch (e) { toast('這個裝置不支援全螢幕'); }
+});
+
+/* ---------------- keyboard ---------------- */
+document.addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input,select,textarea')) return;
+  if (document.querySelector('.overlay.show')) { if (e.key === 'Escape') document.querySelectorAll('.overlay.show').forEach(o => closeOv(o.id)); return; }
+  const k = e.key.toLowerCase();
+  if (e.repeat && (k === ' ' || k === 's' || k === '1' || k === '2')) { e.preventDefault(); return; }
+  if (k === ' ') { e.preventDefault(); toggleGame(); }
+  else if (k === 's') toggleShot();
+  else if (k === '2') holdStart('24');
+  else if (k === '1') holdStart('14');
+  else if (k === 'z' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); doUndo(); }
+  else if (k === 'u') doUndo();
+  else if (k === 'q') addScore('L', 1);
+  else if (k === 'w') addScore('L', 2);
+  else if (k === 'e') addScore('L', 3);
+  else if (k === 'o') addScore('R', 2);
+  else if (k === 'i') addScore('R', 3);
+  else if (k === 'a') addScore('L', -1);
+  else if (k === 'p') addScore('R', 1);
+  else if (k === 'l') addScore('R', -1);
+});
+document.addEventListener('keyup', e => {
+  const k = e.key.toLowerCase();
+  if ((k === '2' && held === '24') || (k === '1' && held === '14')) holdEnd();
+});
+
+/* ---------------- misc ---------------- */
+let wl = null;
+async function requestWake(){
+  try { if (!wl && navigator.wakeLock && document.visibilityState === 'visible') {
+    wl = await navigator.wakeLock.request('screen'); wl.addEventListener('release', () => { wl = null; });
+  } } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestWake(); else save(); });
+window.addEventListener('pagehide', save);
+
+let toastT = null;
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1600); }
+
+function fit(){
+  const cs = getComputedStyle($('safe'));
+  const pt = parseFloat(cs.paddingTop) || 0, pr = parseFloat(cs.paddingRight) || 0,
+        pb = parseFloat(cs.paddingBottom) || 0, pl = parseFloat(cs.paddingLeft) || 0;
+  const w = window.innerWidth - pl - pr, h = window.innerHeight - pt - pb;
+  const s = Math.min(w / 1400, h / 900);
+  const st = $('stage').style;
+  st.left = (pl + w / 2) + 'px'; st.top = (pt + h / 2) + 'px';
+  st.transform = `translate(-50%,-50%) scale(${s})`;
+}
+window.addEventListener('resize', fit);
+window.addEventListener('orientationchange', () => setTimeout(fit, 200));
+
+fit(); applyLook(); render();
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {}
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fitTeam($('teamL')); fitTeam($('teamR')); });
+})();
+</script>
+</body>
+</html>
