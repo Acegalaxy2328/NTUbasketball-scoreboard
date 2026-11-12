@@ -74,6 +74,7 @@
   #poss.right{left:1166px}
   .foul{z-index:2;top:96px;width:120px;height:130px;--h:130px;color:#2f8cff;--ghost:.13;--gap:0px}
   #foulL{left:130px} #foulR{left:1150px}
+  .foul.penalty{color:#ff3b2f}
   .fm{z-index:2;top:236px;width:100px;height:66px;display:flex;align-items:center;justify-content:center;border-radius:14px}
   .fm svg{width:44px;height:44px;stroke:#fff;stroke-width:5;stroke-linecap:square}
   .fm:active{background:#262626}
@@ -190,6 +191,10 @@
         <span class="ctl"><button class="btn" data-sadj="-1000">−1秒</button><button class="btn" data-sadj="1000">+1秒</button></span></div>
       <div class="row"><span>大表暫停／繼續時，小表一起暫停／繼續</span>
         <span class="ctl"><input type="checkbox" id="sLink"></span></div>
+      <div class="row"><span>團隊犯規達到幾次變紅色（罰球狀態）</span>
+        <span class="ctl"><select class="inp" id="sFoulLim">
+          <option value="4">4 次</option><option value="5">5 次</option><option value="0">不變色</option>
+        </select></span></div>
       <div class="row"><span>大表剩餘時間少於小表時，關閉小表</span>
         <span class="ctl"><input type="checkbox" id="sShotOff"></span></div>
 
@@ -297,7 +302,7 @@ const HIST_MAX = 10;
 
 /* ---------------- state ---------------- */
 const DEF = {periodLen:600, otLen:300, digitStyle:'seg', labelFont:'oswald', clockColor:'#ff4433',
-  tenths:true, volume:0.8, muted:false, gameSound:'buzzer', shotSound:'buzzer', shotBeep:false, linkShot:true, shotOff:true};
+  tenths:true, volume:0.8, muted:false, gameSound:'buzzer', shotSound:'buzzer', shotBeep:false, linkShot:true, shotOff:true, foulLimit:5};
 const PERIODS = [['1','第1節'],['2','第2節'],['3','第3節'],['4','第4節'],
   ['OT1','延長賽1'],['OT2','延長賽2'],['OT3','延長賽3'],['OT4','延長賽4']];
 let S = {settings:{...DEF}, teams:{L:'B', R:'A'}, scores:{L:0, R:0}, period:'1',
@@ -412,6 +417,9 @@ function render(){
   $('poss').classList.toggle('right', S.poss === 'R');
   setDisp($('foulL'), String(S.fouls.L));
   setDisp($('foulR'), String(S.fouls.R));
+  const lim = S.settings.foulLimit || 99;
+  $('foulL').classList.toggle('penalty', S.fouls.L >= lim);
+  $('foulR').classList.toggle('penalty', S.fouls.R >= lim);
   $('pausedTag').style.visibility = (!S.game.running && S.game.remain > 0) ? 'visible' : 'hidden';
   $('pausedTag').textContent = '暫停中';
   if (S.game.remain <= 0) { $('pausedTag').style.visibility = 'visible'; $('pausedTag').textContent = '時間到'; }
@@ -837,7 +845,7 @@ function fillSettings(){
   $('sOtMin').value = Math.floor(s.otLen / 60);      $('sOtSec').value = s.otLen % 60;
   const cur = Math.ceil(Math.max(0, S.game.remain) / 1000);
   $('sCurMin').value = Math.floor(cur / 60); $('sCurSec').value = cur % 60;
-  $('sLink').checked = s.linkShot; $('sShotOff').checked = s.shotOff; $('sDigit').value = s.digitStyle; $('sLabel').value = s.labelFont;
+  $('sFoulLim').value = String(s.foulLimit); $('sLink').checked = s.linkShot; $('sShotOff').checked = s.shotOff; $('sDigit').value = s.digitStyle; $('sLabel').value = s.labelFont;
   $('sColor').value = s.clockColor; $('sTenths').checked = s.tenths; $('sVol').value = s.volume;
   $('sMute').checked = s.muted; $('sGameSnd').value = s.gameSound; $('sShotSnd').value = s.shotSound; $('sBeep').checked = s.shotBeep;
 }
@@ -869,6 +877,7 @@ const bindSet = (id, key, conv, ev = 'change') => $(id).addEventListener(ev, () 
   applyLook(); render(); saveSoon();
 });
 bindSet('sLink', 'linkShot', Boolean);
+bindSet('sFoulLim', 'foulLimit', Number);
 bindSet('sShotOff', 'shotOff', Boolean);
 bindSet('sDigit', 'digitStyle', String);
 bindSet('sLabel', 'labelFont', String);
