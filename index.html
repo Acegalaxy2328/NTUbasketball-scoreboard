@@ -19,7 +19,7 @@
   html,body{margin:0;height:100%;background:#000;overflow:hidden;color:#fff;
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;
     font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif;-webkit-tap-highlight-color:transparent}
-  #stage{position:absolute;left:50%;top:50%;width:1400px;height:900px;transform:translate(-50%,-50%);
+  #stage{position:absolute;left:50%;top:50%;width:1400px;height:1000px;transform:translate(-50%,-50%);
     --labelFont:'Oswald','Noto Sans TC',sans-serif;--digitFont:'Oswald',sans-serif;--cw:.58em;--clock:#ff4433}
   #stage > *{position:absolute}
   button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -38,15 +38,15 @@
   .disp.text span.s{width:.32em}
   .disp.text span.blank{opacity:0}
 
-  #gameDisp{left:120px;width:1160px;top:22px;height:330px;--h:330px;color:var(--clock);--ghost:.075;--gap:20px}
-  #pausedTag{left:0;width:1400px;top:358px;text-align:center;font-size:22px;color:#6b6b6b;letter-spacing:.4em;pointer-events:none}
+  #gameDisp{left:120px;width:1160px;top:24px;height:370px;--h:370px;color:var(--clock);--ghost:.075;--gap:20px}
+  #pausedTag{left:0;width:1400px;top:402px;text-align:center;font-size:22px;color:#6b6b6b;letter-spacing:.4em;pointer-events:none}
 
-  .team,#periodBtn{top:392px;height:112px;background:transparent;border:0;color:#fff;text-align:center;
+  .team,#periodBtn{top:436px;height:112px;background:transparent;border:0;color:#fff;text-align:center;
     font-family:var(--labelFont);font-weight:700;outline:none;padding:0;border-radius:0;
     border-bottom:3px solid transparent;-webkit-appearance:none;appearance:none}
   .team{width:400px;font-size:88px;-webkit-user-select:text;user-select:text}
   .team:focus{border-bottom-color:#555}
-  #teamL{left:90px} #teamR{left:910px}
+  #teamL{left:95px} #teamR{left:905px}
   #periodBtn{left:470px;width:460px;font-size:78px;cursor:pointer;line-height:112px;white-space:nowrap}
   #periodBtn:active{color:#bbb}
   .pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:18px 0 4px}
@@ -54,23 +54,23 @@
   .pgrid button.cur{background:#fff;color:#000;border-color:#fff}
   .pgrid button:active{background:#444}
 
-  .score{top:545px;width:340px;height:270px;--h:270px;color:#fff;--ghost:.11;--gap:18px;cursor:default}
-  .score.three{top:585px;height:190px;--h:190px;--gap:12px}
-  #scoreL{left:115px} #scoreR{left:945px}
+  .score{top:584px;width:360px;height:290px;--h:290px;color:#fff;--ghost:.11;--gap:18px;cursor:default}
+  .score.three{top:629px;height:200px;--h:200px;--gap:12px}
+  #scoreL{left:115px} #scoreR{left:925px}
 
   .pm{width:100px;height:120px;display:flex;align-items:center;justify-content:center;border-radius:18px}
   .pm svg{width:60px;height:60px;stroke:#fff;stroke-width:5;stroke-linecap:square}
   .pm:active{background:#262626}
-  #Lplus{left:8px;top:540px} #Lminus{left:8px;top:700px}
-  #Rplus{left:1292px;top:540px} #Rminus{left:1292px;top:700px}
+  #Lplus{left:8px;top:584px} #Lminus{left:8px;top:754px}
+  #Rplus{left:1292px;top:584px} #Rminus{left:1292px;top:754px}
 
-  .addRow{top:828px;width:340px;height:64px;display:flex;gap:14px}
-  #addL{left:115px} #addR{left:945px}
-  .addRow button{flex:1;border:2px solid #555;border-radius:16px;font-family:'Oswald',sans-serif;font-weight:500;font-size:36px;line-height:1;transition:background .08s,color .08s}
+  .addRow{top:894px;width:360px;height:76px;display:flex;gap:16px}
+  #addL{left:115px} #addR{left:925px}
+  .addRow button{flex:1;border:2px solid #555;border-radius:16px;font-family:'Oswald',sans-serif;font-weight:500;font-size:42px;line-height:1;transition:background .08s,color .08s}
   .addRow button:active{background:#fff;color:#000;border-color:#fff}
-  #shotDisp{left:500px;width:400px;top:540px;height:170px;--h:170px;color:#fff;--ghost:.11;--gap:12px}
-  #shotBtns{left:480px;top:728px;width:440px;height:164px;border:3px solid #fff;border-radius:32px;display:flex;overflow:hidden;box-sizing:border-box}
-  #shotBtns button{flex:1;font-family:'Oswald',sans-serif;font-weight:600;font-size:92px;line-height:1;transition:background .08s,color .08s}
+  #shotDisp{left:500px;width:400px;top:578px;height:190px;--h:190px;color:#fff;--ghost:.11;--gap:12px}
+  #shotBtns{left:490px;top:790px;width:420px;height:180px;border:3px solid #fff;border-radius:32px;display:flex;overflow:hidden;box-sizing:border-box}
+  #shotBtns button{flex:1;font-family:'Oswald',sans-serif;font-weight:600;font-size:100px;line-height:1;transition:background .08s,color .08s}
   #shotBtns button + button{border-left:3px solid #fff}
   #shotBtns button.held{background:#fff;color:#000}
 
@@ -109,19 +109,19 @@
 <body>
 <div id="safe" style="position:fixed;inset:0;box-sizing:border-box;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
 <div id="stage">
-  <button class="icon" id="btnSettings" style="left:18px;top:26px" aria-label="設定">
+  <button class="icon" id="btnSettings" style="left:18px;top:34px" aria-label="設定">
     <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
   </button>
-  <button class="icon" id="btnHistory" style="left:18px;top:142px" aria-label="操作紀錄">
+  <button class="icon" id="btnHistory" style="left:18px;top:164px" aria-label="操作紀錄">
     <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
   </button>
-  <button class="icon" id="btnUndo" style="left:18px;top:258px" aria-label="復原上一步">
+  <button class="icon" id="btnUndo" style="left:18px;top:294px" aria-label="復原上一步">
     <svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
   </button>
-  <button class="icon" id="btnSound" style="left:1286px;top:44px" aria-label="音量">
+  <button class="icon" id="btnSound" style="left:1286px;top:34px" aria-label="音量">
     <svg viewBox="0 0 24 24"><path id="soundPath" d=""/></svg>
   </button>
-  <button class="icon" id="btnReset" style="left:1286px;top:216px" aria-label="重置">
+  <button class="icon" id="btnReset" style="left:1286px;top:164px" aria-label="重置">
     <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
   </button>
 
@@ -779,7 +779,7 @@ function fit(){
   const pt = parseFloat(cs.paddingTop) || 0, pr = parseFloat(cs.paddingRight) || 0,
         pb = parseFloat(cs.paddingBottom) || 0, pl = parseFloat(cs.paddingLeft) || 0;
   const w = window.innerWidth - pl - pr, h = window.innerHeight - pt - pb;
-  const s = Math.min(w / 1400, h / 900);
+  const s = Math.min(w / 1400, h / 1000);
   const st = $('stage').style;
   st.left = (pl + w / 2) + 'px'; st.top = (pt + h / 2) + 'px';
   st.transform = `translate(-50%,-50%) scale(${s})`;
