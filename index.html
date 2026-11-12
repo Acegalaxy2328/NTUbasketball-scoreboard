@@ -41,17 +41,22 @@
   #gameDisp{left:120px;width:1160px;top:22px;height:330px;--h:330px;color:var(--clock);--ghost:.075;--gap:20px}
   #pausedTag{left:0;width:1400px;top:358px;text-align:center;font-size:22px;color:#6b6b6b;letter-spacing:.4em;pointer-events:none}
 
-  .team,#periodSel{top:392px;height:112px;background:transparent;border:0;color:#fff;text-align:center;
+  .team,#periodBtn{top:392px;height:112px;background:transparent;border:0;color:#fff;text-align:center;
     font-family:var(--labelFont);font-weight:700;outline:none;padding:0;border-radius:0;
     border-bottom:3px solid transparent;-webkit-appearance:none;appearance:none}
   .team{width:400px;font-size:88px;-webkit-user-select:text;user-select:text}
   .team:focus{border-bottom-color:#555}
-  #teamL{left:70px} #teamR{left:930px}
-  #periodSel{left:470px;width:460px;font-size:78px;text-align-last:center;cursor:pointer;font-family:var(--labelFont)}
-  #periodSel option{background:#111;color:#fff;font-size:20px}
+  #teamL{left:90px} #teamR{left:910px}
+  #periodBtn{left:470px;width:460px;font-size:78px;cursor:pointer;line-height:112px;white-space:nowrap}
+  #periodBtn:active{color:#bbb}
+  .pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:18px 0 4px}
+  .pgrid button{background:#222;border:2px solid #3a3a3a;border-radius:14px;padding:18px 4px;font-size:20px;font-weight:700;color:#eee}
+  .pgrid button.cur{background:#fff;color:#000;border-color:#fff}
+  .pgrid button:active{background:#444}
 
-  .score{top:548px;width:470px;height:260px;--h:260px;color:#fff;--ghost:.11;--gap:16px;cursor:default}
-  #scoreL{left:112px} #scoreR{left:818px}
+  .score{top:545px;width:340px;height:270px;--h:270px;color:#fff;--ghost:.11;--gap:18px;cursor:default}
+  .score.three{top:585px;height:190px;--h:190px;--gap:12px}
+  #scoreL{left:115px} #scoreR{left:945px}
 
   .pm{width:100px;height:120px;display:flex;align-items:center;justify-content:center;border-radius:18px}
   .pm svg{width:60px;height:60px;stroke:#fff;stroke-width:5;stroke-linecap:square}
@@ -59,14 +64,14 @@
   #Lplus{left:8px;top:540px} #Lminus{left:8px;top:700px}
   #Rplus{left:1292px;top:540px} #Rminus{left:1292px;top:700px}
 
-  .addRow{top:824px;width:470px;height:64px;display:flex;gap:14px}
-  #addL{left:112px} #addR{left:818px}
+  .addRow{top:828px;width:340px;height:64px;display:flex;gap:14px}
+  #addL{left:115px} #addR{left:945px}
   .addRow button{flex:1;border:2px solid #555;border-radius:16px;font-family:'Oswald',sans-serif;font-weight:500;font-size:36px;line-height:1;transition:background .08s,color .08s}
   .addRow button:active{background:#fff;color:#000;border-color:#fff}
-  #shotDisp{left:590px;width:220px;top:548px;height:150px;--h:150px;color:#fff;--ghost:.11;--gap:10px}
-  #shotBtns{left:590px;top:720px;width:220px;height:86px;border:2px solid #fff;border-radius:24px;display:flex;overflow:hidden;box-sizing:border-box}
-  #shotBtns button{flex:1;font-family:'Oswald',sans-serif;font-weight:500;font-size:46px;transition:background .08s,color .08s}
-  #shotBtns button + button{border-left:2px solid #fff}
+  #shotDisp{left:500px;width:400px;top:540px;height:170px;--h:170px;color:#fff;--ghost:.11;--gap:12px}
+  #shotBtns{left:480px;top:728px;width:440px;height:164px;border:3px solid #fff;border-radius:32px;display:flex;overflow:hidden;box-sizing:border-box}
+  #shotBtns button{flex:1;font-family:'Oswald',sans-serif;font-weight:600;font-size:92px;line-height:1;transition:background .08s,color .08s}
+  #shotBtns button + button{border-left:3px solid #fff}
   #shotBtns button.held{background:#fff;color:#000}
 
   /* ---------- modals ---------- */
@@ -124,7 +129,7 @@
   <div id="pausedTag">暫停中</div>
 
   <input id="teamL" class="team" maxlength="12" spellcheck="false" autocomplete="off">
-  <select id="periodSel" aria-label="節次"></select>
+  <button id="periodBtn" aria-label="節次">第1節</button>
   <input id="teamR" class="team" maxlength="12" spellcheck="false" autocomplete="off">
 
   <button class="pm" id="Lplus" aria-label="左隊加分"><svg viewBox="0 0 60 60"><path d="M30 6v48M6 30h48"/></svg></button>
@@ -223,6 +228,15 @@
   </div>
 </div>
 
+<!-- Period picker -->
+<div class="overlay" id="ovPeriod">
+  <div class="modal" style="width:min(560px,94vw)">
+    <header>選擇節次 <button class="btn close" data-close>取消</button></header>
+    <div class="body"><div class="pgrid" id="pgrid"></div>
+      <div class="note">切換節次後，大表會重置為該節時間、小表回到 24。</div></div>
+  </div>
+</div>
+
 <!-- Reset -->
 <div class="overlay" id="ovReset">
   <div class="modal" style="width:min(460px,92vw)">
@@ -308,7 +322,7 @@ function clockText(){                 // for history
   return String(Math.floor(tot / 60)).padStart(2,'0') + ':' + String(tot % 60).padStart(2,'0');
 }
 const shotStr = () => String(Math.ceil(Math.max(0, S.shot.remain) / 1000)).padStart(2, ' ');
-const scoreStr = n => String(n).padStart(3, ' ');
+const scoreStr = n => String(n).padStart(n >= 100 ? 3 : 2, ' ');
 
 /* ---------------- 7-segment renderer ---------------- */
 const W = 100, H = 180, T = 18, h = T / 2, G = 2.5;
@@ -361,6 +375,9 @@ function render(){
   setDisp($('shotDisp'), shotOff() ? '  ' : shotStr());
   setDisp($('scoreL'), scoreStr(S.scores.L));
   setDisp($('scoreR'), scoreStr(S.scores.R));
+  $('scoreL').classList.toggle('three', S.scores.L >= 100);
+  $('scoreR').classList.toggle('three', S.scores.R >= 100);
+  $('periodBtn').textContent = periodLabel(S.period);
   $('pausedTag').style.visibility = (!S.game.running && S.game.remain > 0) ? 'visible' : 'hidden';
   $('pausedTag').textContent = '暫停中';
   if (S.game.remain <= 0) { $('pausedTag').style.visibility = 'visible'; $('pausedTag').textContent = '時間到'; }
@@ -544,7 +561,7 @@ function doUndo(){
     S[c].remain = Math.max(0, r);
   }
   shotPausedByLink = false;
-  S.scores = {...u.scores}; S.period = u.period; sel.value = u.period;
+  S.scores = {...u.scores}; S.period = u.period;
   S.teams = {...u.teams};
   for (const side of ['L','R']) { $('team' + side).value = S.teams[side]; fitTeam($('team' + side)); }
   log(`↶ 復原：${u.label}`);
@@ -606,14 +623,19 @@ for (const side of ['L','R']) {
 }
 
 // period
-const sel = $('periodSel');
-sel.innerHTML = PERIODS.map(p => `<option value="${p[0]}">${p[1]}</option>`).join('');
-sel.value = S.period;
-sel.addEventListener('change', () => {
-  pushUndo(`切換至 ${periodLabel(sel.value)}`);
-  S.period = sel.value; resetClocks();
+function openPeriod(){
+  $('pgrid').innerHTML = PERIODS.map(p => `<button data-p="${p[0]}" class="${p[0] === S.period ? 'cur' : ''}">${p[1]}</button>`).join('');
+  openOv('ovPeriod');
+}
+$('periodBtn').addEventListener('click', () => { blurActive(); openPeriod(); });
+$('pgrid').addEventListener('click', e => {
+  const b = e.target.closest('[data-p]'); if (!b) return;
+  closeOv('ovPeriod');
+  const v = b.dataset.p; if (v === S.period) return;
+  pushUndo(`切換至 ${periodLabel(v)}`);
+  S.period = v; resetClocks();
   log(`切換至 ${periodLabel(S.period)}，計時重置`);
-  render(); save(); sel.blur();
+  render(); save();
 });
 
 // top buttons
@@ -642,7 +664,7 @@ $('rAll').addEventListener('click', () => {
   closeOv('ovReset');
   confirmBox('重置整場比賽？', '比分會歸零並回到第1節（按錯可以用「復原上一步」救回來）。', () => {
     pushUndo('整場比賽重置');
-    S.scores = {L:0, R:0}; S.period = '1'; sel.value = '1'; resetClocks();
+    S.scores = {L:0, R:0}; S.period = '1'; resetClocks();
     log('↺ 整場比賽重置'); render(); save(); toast('已重置整場比賽');
   });
 });
