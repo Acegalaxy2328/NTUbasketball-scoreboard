@@ -38,7 +38,7 @@
   .disp.text span.s{width:.32em}
   .disp.text span.blank{opacity:0}
 
-  #gameDisp{left:120px;width:1160px;top:40px;height:330px;--h:330px;color:var(--clock);--ghost:.075;--gap:20px}
+  #gameDisp{left:262px;width:876px;top:46px;height:310px;--h:310px;color:var(--clock);--ghost:.075;--gap:20px}
   #pausedTag{left:0;width:1400px;top:402px;text-align:center;font-size:22px;color:#6b6b6b;letter-spacing:.4em;pointer-events:none}
 
   .team,#periodBtn{top:436px;height:112px;background:transparent;border:0;color:#fff;text-align:center;
@@ -70,8 +70,14 @@
   .addRow button:active{background:#fff;color:#000;border-color:#fff}
   #shotDisp{left:480px;width:440px;top:574px;height:250px;--h:250px;color:#fff;transition:color .1s;--ghost:.11;--gap:12px}
   #shotDisp.running{color:#2ee66b}
-  #poss{z-index:2;left:136px;top:10px;width:84px;height:60px;display:flex;align-items:center;justify-content:center}
-  #poss.right{left:1180px}
+  #poss{z-index:2;left:146px;top:18px;width:88px;height:60px;display:flex;align-items:center;justify-content:center}
+  #poss.right{left:1166px}
+  .foul{z-index:2;top:96px;width:120px;height:130px;--h:130px;color:#2f8cff;--ghost:.13;--gap:0px}
+  #foulL{left:130px} #foulR{left:1150px}
+  .fm{z-index:2;top:236px;width:100px;height:66px;display:flex;align-items:center;justify-content:center;border-radius:14px}
+  .fm svg{width:44px;height:44px;stroke:#fff;stroke-width:5;stroke-linecap:square}
+  .fm:active{background:#262626}
+  #foulLm{left:140px} #foulRm{left:1160px}
   #poss svg{width:74px;height:46px;fill:#ff3b2f;transition:transform .15s}
   #poss.right svg{transform:scaleX(-1)}
   #btnSound.ringing{background:#ff3b2f}
@@ -138,6 +144,10 @@
     <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
   </button>
 
+  <div id="foulL" class="disp foul" role="button" aria-label="左隊犯規 +1"></div>
+  <button class="fm" id="foulLm" aria-label="左隊犯規 −1"><svg viewBox="0 0 44 44"><path d="M4 22h36"/></svg></button>
+  <div id="foulR" class="disp foul" role="button" aria-label="右隊犯規 +1"></div>
+  <button class="fm" id="foulRm" aria-label="右隊犯規 −1"><svg viewBox="0 0 44 44"><path d="M4 22h36"/></svg></button>
   <button id="poss" aria-label="球權箭頭"><svg viewBox="0 0 84 52"><polygon points="2,27 82,2 76,50"/></svg></button>
   <div id="gameDisp" class="disp" role="button" aria-label="大表"></div>
   <div id="pausedTag">暫停中</div>
@@ -228,7 +238,7 @@
         鍵盤快捷鍵：<span class="kbd">空白鍵</span>大表 暫停/繼續　<span class="kbd">S</span>小表 暫停/繼續<br>
         按住 <span class="kbd">2</span>＝按住 24，按住 <span class="kbd">1</span>＝按住 14（放開開始跑）<br>
         左隊 <span class="kbd">Q</span><span class="kbd">W</span><span class="kbd">E</span> +1/+2/+3、<span class="kbd">A</span> −1　右隊 <span class="kbd">P</span><span class="kbd">O</span><span class="kbd">I</span> +1/+2/+3、<span class="kbd">L</span> −1<br>
-        按住 <span class="kbd">B</span> 響鈴　<span class="kbd">G</span> 切換球權箭頭<br>
+        按住 <span class="kbd">B</span> 響鈴　<span class="kbd">G</span> 切換球權箭頭　<span class="kbd">F</span>/<span class="kbd">J</span> 左/右隊犯規 +1<br>
         <span class="kbd">U</span> 或 <span class="kbd">⌘/Ctrl+Z</span> 復原上一步<br>
         點隊名可以直接修改。所有設定與比分會自動記在這台裝置上。
       </div>
@@ -291,7 +301,7 @@ const DEF = {periodLen:600, otLen:300, digitStyle:'seg', labelFont:'oswald', clo
 const PERIODS = [['1','第1節'],['2','第2節'],['3','第3節'],['4','第4節'],
   ['OT1','延長賽1'],['OT2','延長賽2'],['OT3','延長賽3'],['OT4','延長賽4']];
 let S = {settings:{...DEF}, teams:{L:'B', R:'A'}, scores:{L:0, R:0}, period:'1',
-  game:{remain:600000, running:false}, shot:{remain:24000, running:false}, poss:'L', byPeriod:{}, history:[]};
+  game:{remain:600000, running:false}, shot:{remain:24000, running:false}, poss:'L', fouls:{L:0, R:0}, byPeriod:{}, history:[]};
 
 try {
   const d = JSON.parse(localStorage.getItem(KEY) || 'null');
@@ -301,6 +311,7 @@ try {
     if (d.scores) S.scores = d.scores;
     if (d.period) S.period = d.period;
     if (d.poss === 'L' || d.poss === 'R') S.poss = d.poss;
+    if (d.fouls) S.fouls = {L: +d.fouls.L || 0, R: +d.fouls.R || 0};
     if (d.game) S.game.remain = +d.game.remain || 0;
     if (d.shot) S.shot.remain = +d.shot.remain || 0;
     if (Array.isArray(d.history)) S.history = d.history.slice(-HIST_MAX);
@@ -318,7 +329,7 @@ let shotPausedByLink = false;
 const undoStack = [];
 function pushUndo(label, teamsOverride){
   undoStack.push({label, t: performance.now(), scores:{...S.scores}, period:S.period, poss:S.poss,
-    byPeriod: JSON.parse(JSON.stringify(S.byPeriod)),
+    byPeriod: JSON.parse(JSON.stringify(S.byPeriod)), fouls:{...S.fouls},
     teams: teamsOverride || {...S.teams}, game:{...S.game}, shot:{...S.shot}});
   if (undoStack.length > 60) undoStack.shift();
 }
@@ -399,6 +410,8 @@ function render(){
   $('periodBtn').textContent = periodLabel(S.period);
   $('shotDisp').classList.toggle('running', S.shot.running);
   $('poss').classList.toggle('right', S.poss === 'R');
+  setDisp($('foulL'), String(S.fouls.L));
+  setDisp($('foulR'), String(S.fouls.R));
   $('pausedTag').style.visibility = (!S.game.running && S.game.remain > 0) ? 'visible' : 'hidden';
   $('pausedTag').textContent = '暫停中';
   if (S.game.remain <= 0) { $('pausedTag').style.visibility = 'visible'; $('pausedTag').textContent = '時間到'; }
@@ -633,6 +646,7 @@ function doUndo(){
   shotPausedByLink = false;
   S.scores = {...u.scores}; S.period = u.period; S.poss = u.poss || S.poss;
   if (u.byPeriod) S.byPeriod = u.byPeriod;
+  if (u.fouls) S.fouls = {...u.fouls};
   S.teams = {...u.teams};
   for (const side of ['L','R']) { $('team' + side).value = S.teams[side]; fitTeam($('team' + side)); }
   log(`↶ 復原：${u.label}`);
@@ -718,7 +732,9 @@ $('pgrid').addEventListener('click', e => {
   closeOv('ovPeriod');
   const v = b.dataset.p; if (v === S.period) return;
   pushUndo(`切換至 ${periodLabel(v)}`);
+  const keepFouls = v.startsWith('OT') && (S.period === '4' || S.period.startsWith('OT'));
   S.period = v; resetClocks();
+  if (!keepFouls) S.fouls = {L:0, R:0};
   log(`切換至 ${periodLabel(S.period)}，計時重置`);
   render(); save();
 });
@@ -752,6 +768,19 @@ function hornStop(){
   b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {} hornStart(); });
   for (const ev of ['pointerup','pointercancel','lostpointercapture']) b.addEventListener(ev, hornStop);
 }
+function addFoul(side, d){
+  const n = Math.max(0, Math.min(9, S.fouls[side] + d));
+  if (n === S.fouls[side]) return;
+  const name = S.teams[side] || (side === 'L' ? '左隊' : '右隊');
+  pushUndo(`${name} 犯規 ${d > 0 ? '+1' : '−1'}`);
+  S.fouls[side] = n;
+  log(`${name} 團隊犯規 ${d > 0 ? '+1' : '−1'}（共 ${n}）`);
+  render(); saveSoon();
+}
+down($('foulL'), () => addFoul('L', 1));
+down($('foulR'), () => addFoul('R', 1));
+down($('foulLm'), () => addFoul('L', -1));
+down($('foulRm'), () => addFoul('R', -1));
 function togglePoss(){
   pushUndo('切換球權箭頭');
   S.poss = S.poss === 'L' ? 'R' : 'L';
@@ -784,7 +813,7 @@ $('rAll').addEventListener('click', () => {
   closeOv('ovReset');
   confirmBox('重置整場比賽？', '比分會歸零並回到第1節（按錯可以用「復原上一步」救回來）。', () => {
     pushUndo('整場比賽重置');
-    S.scores = {L:0, R:0}; S.byPeriod = {}; S.period = '1'; resetClocks();
+    S.scores = {L:0, R:0}; S.fouls = {L:0, R:0}; S.byPeriod = {}; S.period = '1'; resetClocks();
     log('↺ 整場比賽重置'); render(); save(); toast('已重置整場比賽');
   });
 });
@@ -874,6 +903,8 @@ document.addEventListener('keydown', e => {
   else if (k === 'u') doUndo();
   else if (k === 'b') hornStart();
   else if (k === 'g') togglePoss();
+  else if (k === 'f') addFoul('L', 1);
+  else if (k === 'j') addFoul('R', 1);
   else if (k === 'q') addScore('L', 1);
   else if (k === 'w') addScore('L', 2);
   else if (k === 'e') addScore('L', 3);
