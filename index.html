@@ -24,9 +24,9 @@
   #stage > *{position:absolute}
   button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
 
-  .icon{width:96px;height:96px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .1s}
+  .icon{z-index:2;width:112px;height:112px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .1s}
   .icon svg{width:66px;height:66px;fill:#fff}
-  .icon:active{background:#262626}
+  .icon:active,.icon.pressed{background:#262626}
 
   .disp{display:flex;justify-content:center;align-items:center;cursor:pointer}
   .disp svg{height:100%;width:auto;margin:0 calc(var(--gap,12px)/2);overflow:visible;display:block}
@@ -115,19 +115,19 @@
 <body>
 <div id="safe" style="position:fixed;inset:0;box-sizing:border-box;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
 <div id="stage">
-  <button class="icon" id="btnSettings" style="left:18px;top:34px" aria-label="設定">
+  <button class="icon" id="btnSettings" style="left:10px;top:26px" aria-label="設定">
     <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
   </button>
-  <button class="icon" id="btnHistory" style="left:18px;top:164px" aria-label="操作紀錄">
+  <button class="icon" id="btnHistory" style="left:10px;top:156px" aria-label="操作紀錄">
     <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
   </button>
-  <button class="icon" id="btnUndo" style="left:18px;top:294px" aria-label="復原上一步">
+  <button class="icon" id="btnUndo" style="left:10px;top:286px" aria-label="復原上一步">
     <svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
   </button>
-  <button class="icon" id="btnSound" style="left:1286px;top:34px" aria-label="響鈴（按住）">
+  <button class="icon" id="btnSound" style="left:1278px;top:26px" aria-label="響鈴（按住）">
     <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
   </button>
-  <button class="icon" id="btnReset" style="left:1286px;top:164px" aria-label="重置">
+  <button class="icon" id="btnReset" style="left:1278px;top:156px" aria-label="重置">
     <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
   </button>
 
@@ -424,6 +424,45 @@ function ensureAC(){
     if (ac.state === 'suspended') ac.resume();
   } catch (e) {}
 }
+let noiseBuf = null, distCurve = null;
+// Builds a sustained buzzer/horn voice into `dest`; returns the source nodes to start/stop.
+function buildVoice(kind, base, dest){
+  const srcs = [];
+  if (kind === 'horn') {
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400; lp.connect(dest);
+    const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 5.5; lg.gain.value = 5; lfo.connect(lg);
+    for (const m of [1, 1.26, 1.5]) {
+      const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = base * m;
+      lg.connect(o.frequency); o.connect(lp); srcs.push(o);
+    }
+    srcs.push(lfo);
+    return srcs;
+  }
+  // electromechanical buzzer: square/saw core + grit + 100Hz rattle + hiss, through a clipper
+  if (!distCurve) {
+    distCurve = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; distCurve[i] = Math.tanh(4 * x); }
+  }
+  if (!noiseBuf) {
+    noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const shaper = ac.createWaveShaper(); shaper.curve = distCurve; shaper.oversample = '2x';
+  const am = ac.createGain(); am.gain.value = .6;
+  const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 250;
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 6000;
+  shaper.connect(am); am.connect(hp); hp.connect(lp); lp.connect(dest);
+  const add = (type, f, g) => { const o = ac.createOscillator(), gg = ac.createGain(); o.type = type; o.frequency.value = f; gg.gain.value = g; o.connect(gg); gg.connect(shaper); srcs.push(o); };
+  add('square', base, .5); add('sawtooth', base * 1.009, .4); add('square', base * 2.01, .18); add('sawtooth', base * 3.02, .1);
+  const n = ac.createBufferSource(); n.buffer = noiseBuf; n.loop = true;
+  const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = base * 4; bp.Q.value = .8;
+  const ng = ac.createGain(); ng.gain.value = .45; n.connect(bp); bp.connect(ng); ng.connect(shaper); srcs.push(n);
+  const rattle = ac.createOscillator(), rg = ac.createGain(); rattle.type = 'square'; rattle.frequency.value = 100; rg.gain.value = .35;
+  rattle.connect(rg); rg.connect(am.gain); srcs.push(rattle);
+  return srcs;
+}
+const VOICE_BASE = {game: 440, shot: 560, manual: 440};
+
 function play(kind, role, force){
   if (kind === 'none' || (!force && S.settings.muted)) return;
   ensureAC(); if (!ac) return;
@@ -450,15 +489,9 @@ function play(kind, role, force){
     end = t0 + n * .34;
   } else {
     const dur = role === 'game' ? 2.0 : 1.3;
-    const base = role === 'game' ? 170 : 240;
-    if (kind === 'horn') {
-      const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 5.5; lg.gain.value = 4; lfo.connect(lg);
-      for (const m of [1.33, 1.68, 2.0]) { const o = osc('sawtooth', base * m); lg.connect(o.frequency); }
-      oscs.push(lfo); lp.frequency.value = 1800;
-    } else {
-      osc('sawtooth', base); osc('sawtooth', base * 1.012); osc('square', base * 2);
-    }
-    const peak = v * .42;
+    lp.frequency.value = 20000;
+    oscs.push(...buildVoice(kind, kind === 'horn' ? VOICE_BASE[role] * .75 : VOICE_BASE[role], lp));
+    const peak = v * .44;
     out.gain.setValueAtTime(0, t0); out.gain.linearRampToValueAtTime(peak, t0 + .015);
     out.gain.setValueAtTime(peak, t0 + dur - .06); out.gain.linearRampToValueAtTime(0, t0 + dur);
     end = t0 + dur;
@@ -579,6 +612,20 @@ function doUndo(){
 }
 
 /* ---------------- input wiring ---------------- */
+function tap(el, fn){
+  let pid = null;
+  el.addEventListener('pointerdown', e => {
+    e.preventDefault(); blurActive(); pid = e.pointerId; el.classList.add('pressed');
+    try { el.setPointerCapture(e.pointerId); } catch (x) {}
+  });
+  el.addEventListener('pointerup', e => {
+    if (pid !== e.pointerId) return;
+    pid = null; el.classList.remove('pressed');
+    const r = el.getBoundingClientRect(), m = 40;   // forgiving: finger may drift a little
+    if (e.clientX >= r.left - m && e.clientX <= r.right + m && e.clientY >= r.top - m && e.clientY <= r.bottom + m) fn(e);
+  });
+  el.addEventListener('pointercancel', () => { pid = null; el.classList.remove('pressed'); });
+}
 const down = (el, fn) => el.addEventListener('pointerdown', e => { e.preventDefault(); blurActive(); fn(e); });
 function blurActive(){ const a = document.activeElement; if (a && (a.tagName === 'INPUT' || a.tagName === 'SELECT') && a.closest('#stage')) a.blur(); }
 
@@ -604,7 +651,7 @@ document.querySelectorAll('[data-add]').forEach(b => {
   const [side, n] = b.dataset.add.split(',');
   down(b, () => addScore(side, +n));
 });
-$('btnUndo').addEventListener('click', doUndo);
+tap($('btnUndo'), doUndo);
 $('histUndo').addEventListener('click', doUndo);
 $('stage').addEventListener('pointerdown', e => { if (e.target === $('stage')) blurActive(); });
 document.addEventListener('contextmenu', e => { if (!e.target.closest('input')) e.preventDefault(); });
@@ -637,7 +684,7 @@ function openPeriod(){
   $('pgrid').innerHTML = PERIODS.map(p => `<button data-p="${p[0]}" class="${p[0] === S.period ? 'cur' : ''}">${p[1]}</button>`).join('');
   openOv('ovPeriod');
 }
-$('periodBtn').addEventListener('click', () => { blurActive(); openPeriod(); });
+tap($('periodBtn'), openPeriod);
 $('pgrid').addEventListener('click', e => {
   const b = e.target.closest('[data-p]'); if (!b) return;
   closeOv('ovPeriod');
@@ -655,17 +702,10 @@ function hornStart(){
   if (horn) return;
   ensureAC(); if (!ac) return;
   const kind = S.settings.gameSound === 'horn' ? 'horn' : 'buzzer';
-  const t0 = ac.currentTime, out = ac.createGain(), lp = ac.createBiquadFilter();
-  lp.type = 'lowpass'; lp.frequency.value = kind === 'horn' ? 1800 : 2600;
-  lp.connect(out); out.connect(ac.destination);
-  const oscs = [], base = 170;
-  const osc = (type, f) => { const o = ac.createOscillator(); o.type = type; o.frequency.value = f; o.connect(lp); oscs.push(o); return o; };
-  if (kind === 'horn') {
-    const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 5.5; lg.gain.value = 4; lfo.connect(lg);
-    for (const m of [1.33, 1.68, 2.0]) lg.connect(osc('sawtooth', base * m).frequency);
-    oscs.push(lfo);
-  } else { osc('sawtooth', base); osc('sawtooth', base * 1.012); osc('square', base * 2); }
-  const peak = Math.max(.05, S.settings.volume) * .42;
+  const t0 = ac.currentTime, out = ac.createGain();
+  out.connect(ac.destination);
+  const oscs = buildVoice(kind, kind === 'horn' ? VOICE_BASE.manual * .75 : VOICE_BASE.manual, out);
+  const peak = Math.max(.05, S.settings.volume) * .44;
   out.gain.setValueAtTime(0, t0); out.gain.linearRampToValueAtTime(peak, t0 + .015);
   oscs.forEach(o => o.start(t0));
   horn = {out, oscs, t0, peak};
@@ -690,15 +730,19 @@ function togglePoss(){
   log(`球權箭頭 → ${S.teams[S.poss] || (S.poss === 'L' ? '左隊' : '右隊')}`);
   render(); saveSoon();
 }
-$('poss').addEventListener('click', togglePoss);
-$('btnReset').addEventListener('click', () => openOv('ovReset'));
-$('btnHistory').addEventListener('click', () => { renderHistory(); openOv('ovHistory'); });
-$('btnSettings').addEventListener('click', () => { fillSettings(); openOv('ovSettings'); });
+tap($('poss'), togglePoss);
+tap($('btnReset'), () => openOv('ovReset'));
+tap($('btnHistory'), () => { renderHistory(); openOv('ovHistory'); });
+tap($('btnSettings'), () => { fillSettings(); openOv('ovSettings'); });
 
 /* ---------------- overlays ---------------- */
-function openOv(id){ $(id).classList.add('show'); }
+function openOv(id){ const o = $(id); o._openedAt = performance.now(); o.classList.add('show'); }
 function closeOv(id){ $(id).classList.remove('show'); }
 document.querySelectorAll('.overlay').forEach(ov => {
+  // swallow the ghost click that follows the tap which opened this overlay
+  ov.addEventListener('click', e => {
+    if (performance.now() - (ov._openedAt || 0) < 450) { e.stopImmediatePropagation(); e.preventDefault(); }
+  }, true);
   ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('[data-close]')) closeOv(ov.id); });
 });
 let cfAction = null;
