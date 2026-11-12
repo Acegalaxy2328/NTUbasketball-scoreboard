@@ -38,7 +38,7 @@
   .disp.text span.s{width:.32em}
   .disp.text span.blank{opacity:0}
 
-  #gameDisp{left:120px;width:1160px;top:24px;height:370px;--h:370px;color:var(--clock);--ghost:.075;--gap:20px}
+  #gameDisp{left:120px;width:1160px;top:40px;height:330px;--h:330px;color:var(--clock);--ghost:.075;--gap:20px}
   #pausedTag{left:0;width:1400px;top:402px;text-align:center;font-size:22px;color:#6b6b6b;letter-spacing:.4em;pointer-events:none}
 
   .team,#periodBtn{top:436px;height:112px;background:transparent;border:0;color:#fff;text-align:center;
@@ -68,9 +68,15 @@
   #addL{left:115px} #addR{left:925px}
   .addRow button{flex:1;border:2px solid #555;border-radius:16px;font-family:'Oswald',sans-serif;font-weight:500;font-size:42px;line-height:1;transition:background .08s,color .08s}
   .addRow button:active{background:#fff;color:#000;border-color:#fff}
-  #shotDisp{left:500px;width:400px;top:578px;height:190px;--h:190px;color:#fff;--ghost:.11;--gap:12px}
-  #shotBtns{left:490px;top:790px;width:420px;height:180px;border:3px solid #fff;border-radius:32px;display:flex;overflow:hidden;box-sizing:border-box}
-  #shotBtns button{flex:1;font-family:'Oswald',sans-serif;font-weight:600;font-size:100px;line-height:1;transition:background .08s,color .08s}
+  #shotDisp{left:480px;width:440px;top:574px;height:250px;--h:250px;color:#fff;transition:color .1s;--ghost:.11;--gap:12px}
+  #shotDisp.running{color:#2ee66b}
+  #poss{z-index:2;left:136px;top:10px;width:84px;height:60px;display:flex;align-items:center;justify-content:center}
+  #poss.right{left:1180px}
+  #poss svg{width:74px;height:46px;fill:#ff3b2f;transition:transform .15s}
+  #poss.right svg{transform:scaleX(-1)}
+  #btnSound.ringing{background:#ff3b2f}
+  #shotBtns{left:540px;top:846px;width:320px;height:116px;border:3px solid #fff;border-radius:32px;display:flex;overflow:hidden;box-sizing:border-box}
+  #shotBtns button{flex:1;font-family:'Oswald',sans-serif;font-weight:600;font-size:66px;line-height:1;transition:background .08s,color .08s}
   #shotBtns button + button{border-left:3px solid #fff}
   #shotBtns button.held{background:#fff;color:#000}
 
@@ -118,13 +124,14 @@
   <button class="icon" id="btnUndo" style="left:18px;top:294px" aria-label="復原上一步">
     <svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
   </button>
-  <button class="icon" id="btnSound" style="left:1286px;top:34px" aria-label="音量">
-    <svg viewBox="0 0 24 24"><path id="soundPath" d=""/></svg>
+  <button class="icon" id="btnSound" style="left:1286px;top:34px" aria-label="響鈴（按住）">
+    <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
   </button>
   <button class="icon" id="btnReset" style="left:1286px;top:164px" aria-label="重置">
     <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
   </button>
 
+  <button id="poss" aria-label="球權箭頭"><svg viewBox="0 0 84 52"><polygon points="2,27 82,2 76,50"/></svg></button>
   <div id="gameDisp" class="disp" role="button" aria-label="大表"></div>
   <div id="pausedTag">暫停中</div>
 
@@ -193,6 +200,8 @@
         <span class="ctl"><input type="checkbox" id="sTenths"></span></div>
 
       <h3>音效</h3>
+      <div class="row"><span>靜音（時間到不發出聲音，手動響鈴照常）</span>
+        <span class="ctl"><input type="checkbox" id="sMute"></span></div>
       <div class="row"><span>音量</span>
         <span class="ctl"><input type="range" id="sVol" min="0" max="1" step="0.05"></span></div>
       <div class="row"><span>大表時間到</span>
@@ -212,6 +221,7 @@
         鍵盤快捷鍵：<span class="kbd">空白鍵</span>大表 暫停/繼續　<span class="kbd">S</span>小表 暫停/繼續<br>
         按住 <span class="kbd">2</span>＝按住 24，按住 <span class="kbd">1</span>＝按住 14（放開開始跑）<br>
         左隊 <span class="kbd">Q</span><span class="kbd">W</span><span class="kbd">E</span> +1/+2/+3、<span class="kbd">A</span> −1　右隊 <span class="kbd">P</span><span class="kbd">O</span><span class="kbd">I</span> +1/+2/+3、<span class="kbd">L</span> −1<br>
+        按住 <span class="kbd">B</span> 響鈴　<span class="kbd">G</span> 切換球權箭頭<br>
         <span class="kbd">U</span> 或 <span class="kbd">⌘/Ctrl+Z</span> 復原上一步<br>
         點隊名可以直接修改。所有設定與比分會自動記在這台裝置上。
       </div>
@@ -273,7 +283,7 @@ const DEF = {periodLen:600, otLen:300, digitStyle:'seg', labelFont:'oswald', clo
 const PERIODS = [['1','第1節'],['2','第2節'],['3','第3節'],['4','第4節'],
   ['OT1','延長賽1'],['OT2','延長賽2'],['OT3','延長賽3'],['OT4','延長賽4']];
 let S = {settings:{...DEF}, teams:{L:'B', R:'A'}, scores:{L:0, R:0}, period:'1',
-  game:{remain:600000, running:false}, shot:{remain:24000, running:false}, history:[]};
+  game:{remain:600000, running:false}, shot:{remain:24000, running:false}, poss:'L', history:[]};
 
 try {
   const d = JSON.parse(localStorage.getItem(KEY) || 'null');
@@ -282,6 +292,7 @@ try {
     if (d.teams) S.teams = d.teams;
     if (d.scores) S.scores = d.scores;
     if (d.period) S.period = d.period;
+    if (d.poss === 'L' || d.poss === 'R') S.poss = d.poss;
     if (d.game) S.game.remain = +d.game.remain || 0;
     if (d.shot) S.shot.remain = +d.shot.remain || 0;
     if (Array.isArray(d.history)) S.history = d.history.slice(-600);
@@ -296,7 +307,7 @@ let held = null;               // '24' | '14' while a shot button is held
 let shotPausedByLink = false;
 const undoStack = [];
 function pushUndo(label, teamsOverride){
-  undoStack.push({label, t: performance.now(), scores:{...S.scores}, period:S.period,
+  undoStack.push({label, t: performance.now(), scores:{...S.scores}, period:S.period, poss:S.poss,
     teams: teamsOverride || {...S.teams}, game:{...S.game}, shot:{...S.shot}});
   if (undoStack.length > 60) undoStack.shift();
 }
@@ -356,8 +367,6 @@ function setDisp(el, str){
 }
 
 /* ---------------- render ---------------- */
-const ICON_ON = 'M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z';
-const ICON_OFF = 'M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.796 8.796 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z';
 
 function applyLook(){
   const st = $('stage').style, s = S.settings;
@@ -367,7 +376,6 @@ function applyLook(){
     : "'Oswald','Noto Sans TC',sans-serif");
   st.setProperty('--digitFont', s.digitStyle === 'mono' ? "'Roboto Mono',ui-monospace,Menlo,monospace" : "'Oswald',sans-serif");
   st.setProperty('--cw', s.digitStyle === 'mono' ? '.62em' : '.56em');
-  $('soundPath').setAttribute('d', s.muted ? ICON_OFF : ICON_ON);
   for (const id of ['gameDisp','shotDisp','scoreL','scoreR']) $(id)._k = null;
 }
 function render(){
@@ -378,6 +386,8 @@ function render(){
   $('scoreL').classList.toggle('three', S.scores.L >= 100);
   $('scoreR').classList.toggle('three', S.scores.R >= 100);
   $('periodBtn').textContent = periodLabel(S.period);
+  $('shotDisp').classList.toggle('running', S.shot.running);
+  $('poss').classList.toggle('right', S.poss === 'R');
   $('pausedTag').style.visibility = (!S.game.running && S.game.remain > 0) ? 'visible' : 'hidden';
   $('pausedTag').textContent = '暫停中';
   if (S.game.remain <= 0) { $('pausedTag').style.visibility = 'visible'; $('pausedTag').textContent = '時間到'; }
@@ -561,7 +571,7 @@ function doUndo(){
     S[c].remain = Math.max(0, r);
   }
   shotPausedByLink = false;
-  S.scores = {...u.scores}; S.period = u.period;
+  S.scores = {...u.scores}; S.period = u.period; S.poss = u.poss || S.poss;
   S.teams = {...u.teams};
   for (const side of ['L','R']) { $('team' + side).value = S.teams[side]; fitTeam($('team' + side)); }
   log(`↶ 復原：${u.label}`);
@@ -639,10 +649,48 @@ $('pgrid').addEventListener('click', e => {
 });
 
 // top buttons
-$('btnSound').addEventListener('click', () => {
-  S.settings.muted = !S.settings.muted; applyLook(); render(); saveSoon();
-  toast(S.settings.muted ? '已靜音' : '已開啟聲音');
-});
+// manual horn: hold to ring
+let horn = null;
+function hornStart(){
+  if (horn) return;
+  ensureAC(); if (!ac) return;
+  const kind = S.settings.gameSound === 'horn' ? 'horn' : 'buzzer';
+  const t0 = ac.currentTime, out = ac.createGain(), lp = ac.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = kind === 'horn' ? 1800 : 2600;
+  lp.connect(out); out.connect(ac.destination);
+  const oscs = [], base = 170;
+  const osc = (type, f) => { const o = ac.createOscillator(); o.type = type; o.frequency.value = f; o.connect(lp); oscs.push(o); return o; };
+  if (kind === 'horn') {
+    const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 5.5; lg.gain.value = 4; lfo.connect(lg);
+    for (const m of [1.33, 1.68, 2.0]) lg.connect(osc('sawtooth', base * m).frequency);
+    oscs.push(lfo);
+  } else { osc('sawtooth', base); osc('sawtooth', base * 1.012); osc('square', base * 2); }
+  const peak = Math.max(.05, S.settings.volume) * .42;
+  out.gain.setValueAtTime(0, t0); out.gain.linearRampToValueAtTime(peak, t0 + .015);
+  oscs.forEach(o => o.start(t0));
+  horn = {out, oscs, t0, peak};
+  $('btnSound').classList.add('ringing');
+}
+function hornStop(){
+  if (!horn) return;
+  const h = horn; horn = null;
+  const t = Math.max(ac.currentTime, h.t0 + .35);
+  h.out.gain.setValueAtTime(h.peak, t); h.out.gain.linearRampToValueAtTime(0, t + .06);
+  h.oscs.forEach(o => o.stop(t + .1));
+  $('btnSound').classList.remove('ringing');
+}
+{
+  const b = $('btnSound');
+  b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {} hornStart(); });
+  for (const ev of ['pointerup','pointercancel','lostpointercapture']) b.addEventListener(ev, hornStop);
+}
+function togglePoss(){
+  pushUndo('切換球權箭頭');
+  S.poss = S.poss === 'L' ? 'R' : 'L';
+  log(`球權箭頭 → ${S.teams[S.poss] || (S.poss === 'L' ? '左隊' : '右隊')}`);
+  render(); saveSoon();
+}
+$('poss').addEventListener('click', togglePoss);
 $('btnReset').addEventListener('click', () => openOv('ovReset'));
 $('btnHistory').addEventListener('click', () => { renderHistory(); openOv('ovHistory'); });
 $('btnSettings').addEventListener('click', () => { fillSettings(); openOv('ovSettings'); });
@@ -686,7 +734,7 @@ function fillSettings(){
   $('sCurMin').value = Math.floor(cur / 60); $('sCurSec').value = cur % 60;
   $('sLink').checked = s.linkShot; $('sShotOff').checked = s.shotOff; $('sDigit').value = s.digitStyle; $('sLabel').value = s.labelFont;
   $('sColor').value = s.clockColor; $('sTenths').checked = s.tenths; $('sVol').value = s.volume;
-  $('sGameSnd').value = s.gameSound; $('sShotSnd').value = s.shotSound; $('sBeep').checked = s.shotBeep;
+  $('sMute').checked = s.muted; $('sGameSnd').value = s.gameSound; $('sShotSnd').value = s.shotSound; $('sBeep').checked = s.shotBeep;
 }
 const num = (id, max) => Math.max(0, Math.min(max, parseInt($(id).value, 10) || 0));
 function onLen(kind){
@@ -725,6 +773,7 @@ bindSet('sVol', 'volume', Number, 'input');
 bindSet('sGameSnd', 'gameSound', String);
 bindSet('sShotSnd', 'shotSound', String);
 bindSet('sBeep', 'shotBeep', Boolean);
+bindSet('sMute', 'muted', Boolean);
 $('tGame').addEventListener('click', () => play($('sGameSnd').value, 'game', true));
 $('tShot').addEventListener('click', () => play($('sShotSnd').value, 'shot', true));
 $('sFull').addEventListener('click', () => {
@@ -740,13 +789,15 @@ document.addEventListener('keydown', e => {
   if (e.target.closest && e.target.closest('input,select,textarea')) return;
   if (document.querySelector('.overlay.show')) { if (e.key === 'Escape') document.querySelectorAll('.overlay.show').forEach(o => closeOv(o.id)); return; }
   const k = e.key.toLowerCase();
-  if (e.repeat && (k === ' ' || k === 's' || k === '1' || k === '2')) { e.preventDefault(); return; }
+  if (e.repeat && (k === ' ' || k === 's' || k === '1' || k === '2' || k === 'b')) { e.preventDefault(); return; }
   if (k === ' ') { e.preventDefault(); toggleGame(); }
   else if (k === 's') toggleShot();
   else if (k === '2') holdStart('24');
   else if (k === '1') holdStart('14');
   else if (k === 'z' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); doUndo(); }
   else if (k === 'u') doUndo();
+  else if (k === 'b') hornStart();
+  else if (k === 'g') togglePoss();
   else if (k === 'q') addScore('L', 1);
   else if (k === 'w') addScore('L', 2);
   else if (k === 'e') addScore('L', 3);
@@ -758,6 +809,7 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => {
   const k = e.key.toLowerCase();
+  if (k === 'b') hornStop();
   if ((k === '2' && held === '24') || (k === '1' && held === '14')) holdEnd();
 });
 
