@@ -82,6 +82,8 @@
   #poss svg{width:74px;height:46px;fill:#ff3b2f;transition:transform .15s}
   #poss.right svg{transform:scaleX(-1)}
   #btnSound.ringing{background:#ff3b2f}
+  #btnSound.muted::after{content:'';position:absolute;width:74px;height:6px;background:#ff3b2f;border-radius:3px;transform:rotate(-45deg)}
+  #btnSound.muted svg{opacity:.55}
   #shotBtns{left:540px;top:846px;width:320px;height:116px;border:3px solid #fff;border-radius:32px;display:flex;overflow:hidden;box-sizing:border-box}
   #shotBtns button{flex:1;font-family:'Oswald',sans-serif;font-weight:600;font-size:66px;line-height:1;transition:background .08s,color .08s}
   #shotBtns button + button{border-left:3px solid #fff}
@@ -222,6 +224,7 @@
         <span class="ctl"><input type="checkbox" id="sTenths"></span></div>
 
       <h3>音效</h3>
+      <div class="row"><span>音效狀態</span><span class="ctl" id="audioStatus" style="font-weight:700">—</span></div>
       <div class="row"><span>靜音（時間到不發出聲音，手動響鈴照常）</span>
         <span class="ctl"><input type="checkbox" id="sMute"></span></div>
       <div class="row"><span>音量</span>
@@ -459,15 +462,58 @@ function renderHistory(){
 
 /* ---------------- audio ---------------- */
 let ac = null;
+// iPad/iPhone: by default Web Audio is silenced by the ringer/silent switch and gets
+// "interrupted" after the app is backgrounded or the screen locks. Ask for the
+// playback session (iOS 17+) so the buzzer ignores silent mode, and revive the
+// context on every touch.
+let silentEl = null;
+function setPlaybackSession(){
+  try { if (navigator.audioSession) { navigator.audioSession.type = 'playback'; return; } } catch (e) {}
+  // older iOS: a looping silent <audio> element switches the page to the playback category
+  try {
+    if (!silentEl) {
+      const sr = 8000, n = sr, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+      const w = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+      w(0,'RIFF'); v.setUint32(4, 36 + n*2, true); w(8,'WAVE'); w(12,'fmt '); v.setUint32(16,16,true);
+      v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,sr,true); v.setUint32(28,sr*2,true);
+      v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,'data'); v.setUint32(40,n*2,true);
+      silentEl = new Audio(URL.createObjectURL(new Blob([buf], {type:'audio/wav'})));
+      silentEl.loop = true; silentEl.setAttribute('playsinline', ''); silentEl.volume = 0.01;
+    }
+    if (silentEl.paused) { const r = silentEl.play(); if (r && r.catch) r.catch(() => {}); }
+  } catch (e) {}
+}
+function newContext(){
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+  noiseBuf = null;
+  const b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource();   // unlock
+  src.buffer = b; src.connect(ac.destination); src.start(0);
+  ac.onstatechange = updateAudioStatus;
+}
 function ensureAC(){
   try {
-    if (!ac) {
-      ac = new (window.AudioContext || window.webkitAudioContext)();
-      const b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource();   // iOS unlock
-      src.buffer = b; src.connect(ac.destination); src.start(0);
+    setPlaybackSession();
+    if (!ac || ac.state === 'closed') newContext();
+    if (ac.state !== 'running') {
+      const r = ac.resume();
+      if (r && r.catch) r.catch(() => { try { ac.close(); } catch (e) {} newContext(); });
     }
-    if (ac.state === 'suspended') ac.resume();
   } catch (e) {}
+  updateAudioStatus();
+}
+function audioOK(){ return ac && ac.state === 'running'; }
+function updateAudioStatus(){
+  const el = document.getElementById('audioStatus'); if (!el) return;
+  const s = S.settings;
+  let t, c;
+  if (s.muted) { t = '靜音中：時間到不會響（到「靜音」開關關掉）'; c = '#ff8a7a'; }
+  else if (s.volume <= 0.01) { t = '音量是 0，請調大音量'; c = '#ff8a7a'; }
+  else if (!ac) { t = '尚未啟動：點一下畫面任何地方即可'; c = '#ffd36b'; }
+  else if (ac.state !== 'running') { t = `音效暫停（${ac.state}），點一下畫面恢復`; c = '#ffd36b'; }
+  else { t = '正常'; c = '#5fe08a'; }
+  el.textContent = t; el.style.color = c;
+  const bell = document.getElementById('btnSound');
+  if (bell) bell.classList.toggle('muted', !!s.muted);
 }
 let noiseBuf = null, distCurve = null;
 // Builds a sustained buzzer/horn voice into `dest`; returns the source nodes to start/stop.
@@ -511,6 +557,10 @@ const VOICE_BASE = {game: 440, shot: 560, manual: 440};
 function play(kind, role, force){
   if (kind === 'none' || (!force && S.settings.muted)) return;
   ensureAC(); if (!ac) return;
+  if (ac.state !== 'running') {           // e.g. buzzer fired after the screen was idle
+    const r = ac.resume();
+    if (r && r.then) { r.then(() => play(kind, role, force)).catch(() => {}); return; }
+  }
   const v = S.settings.volume, t0 = ac.currentTime + 0.01;
   const out = ac.createGain(); out.gain.value = 0;
   const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
@@ -680,6 +730,8 @@ const down = (el, fn) => el.addEventListener('pointerdown', e => { e.preventDefa
 function blurActive(){ const a = document.activeElement; if (a && (a.tagName === 'INPUT' || a.tagName === 'SELECT') && a.closest('#stage')) a.blur(); }
 
 document.addEventListener('pointerdown', () => { ensureAC(); requestWake(); }, true);
+document.addEventListener('touchend', () => { ensureAC(); }, true);   // iOS only counts touchend as a gesture for audio
+window.addEventListener('pageshow', () => { if (ac && ac.state !== 'running') ac.resume().catch(() => {}); });
 
 down($('gameDisp'), toggleGame);
 down($('shotDisp'), toggleShot);
@@ -847,6 +899,7 @@ function fillSettings(){
   $('sCurMin').value = Math.floor(cur / 60); $('sCurSec').value = cur % 60;
   $('sFoulLim').value = String(s.foulLimit); $('sLink').checked = s.linkShot; $('sShotOff').checked = s.shotOff; $('sDigit').value = s.digitStyle; $('sLabel').value = s.labelFont;
   $('sColor').value = s.clockColor; $('sTenths').checked = s.tenths; $('sVol').value = s.volume;
+  updateAudioStatus();
   $('sMute').checked = s.muted; $('sGameSnd').value = s.gameSound; $('sShotSnd').value = s.shotSound; $('sBeep').checked = s.shotBeep;
 }
 const num = (id, max) => Math.max(0, Math.min(max, parseInt($(id).value, 10) || 0));
@@ -888,6 +941,8 @@ bindSet('sGameSnd', 'gameSound', String);
 bindSet('sShotSnd', 'shotSound', String);
 bindSet('sBeep', 'shotBeep', Boolean);
 bindSet('sMute', 'muted', Boolean);
+['sMute','sVol'].forEach(id => $(id).addEventListener('input', updateAudioStatus));
+$('sMute').addEventListener('change', updateAudioStatus);
 $('tGame').addEventListener('click', () => play($('sGameSnd').value, 'game', true));
 $('tShot').addEventListener('click', () => play($('sShotSnd').value, 'shot', true));
 $('sFull').addEventListener('click', () => {
@@ -936,7 +991,7 @@ async function requestWake(){
     wl = await navigator.wakeLock.request('screen'); wl.addEventListener('release', () => { wl = null; });
   } } catch (e) {}
 }
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestWake(); else save(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { requestWake(); if (ac && ac.state !== 'running') ac.resume().catch(() => {}); updateAudioStatus(); } else save(); });
 window.addEventListener('pagehide', save);
 
 let toastT = null;
@@ -955,7 +1010,7 @@ function fit(){
 window.addEventListener('resize', fit);
 window.addEventListener('orientationchange', () => setTimeout(fit, 200));
 
-fit(); applyLook(); render();
+fit(); applyLook(); render(); updateAudioStatus();
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {}
 }
